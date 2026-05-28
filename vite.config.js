@@ -1,0 +1,97 @@
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import fs from 'fs'
+import path from 'path'
+
+function parseKitFilename(filename) {
+  // augsburg_1.png style (underscore separator)
+  let m = filename.match(/^(.+)_(\d+)\.png$/i)
+  if (m) return { prefix: m[1], id: m[1].toLowerCase(), sep: '_', kitNum: parseInt(m[2]) }
+  // feyenoord1.png / Celta3.png style (no separator)
+  m = filename.match(/^(.+?)(\d+)\.png$/i)
+  if (m) return { prefix: m[1], id: m[1].toLowerCase(), sep: '', kitNum: parseInt(m[2]) }
+  return null
+}
+
+function extractAltClubId(filename) {
+  let base = filename.replace(/\.png$/i, '').toLowerCase()
+  base = base.replace(/_alt\d*$/, '')     // _alt, _alt1
+  base = base.replace(/\d*alt\d*$/, '')   // 1alt, 2alt, 1alt1
+  base = base.replace(/_alt\d*$/, '')     // second pass after digit removal
+  base = base.replace(/_\d+$/, '')        // _4, _5
+  base = base.replace(/\d+$/, '')         // trailing digit
+  return base.replace(/\s+/g, '_').trim()
+}
+
+function buildManifest() {
+  const kitsDir = path.resolve('./kits')
+  if (!fs.existsSync(kitsDir)) return {}
+  const result = {}
+
+  for (const season of fs.readdirSync(kitsDir).filter(f => fs.statSync(path.join(kitsDir, f)).isDirectory()).sort()) {
+    result[season] = []
+    const seasonDir = path.join(kitsDir, season)
+
+    for (const league of fs.readdirSync(seasonDir).filter(f => fs.statSync(path.join(seasonDir, f)).isDirectory()).sort()) {
+      const leagueDir = path.join(seasonDir, league)
+      const allEntries = fs.readdirSync(leagueDir)
+
+      // Parse main kit files
+      const clubMap = new Map() // id → { prefix, sep, kits: Set }
+      for (const f of allEntries.filter(f => f.toLowerCase().endsWith('.png'))) {
+        const parsed = parseKitFilename(f)
+        if (!parsed) continue
+        const { prefix, id, sep, kitNum } = parsed
+        if (!clubMap.has(id)) clubMap.set(id, { prefix, sep, kits: new Set() })
+        clubMap.get(id).kits.add(kitNum)
+      }
+
+      // Scan alt/ or Alt/ subdirectory
+      const altDirName = allEntries.find(f =>
+        f.toLowerCase() === 'alt' && fs.statSync(path.join(leagueDir, f)).isDirectory()
+      )
+      const altKits = {}
+      if (altDirName) {
+        for (const f of fs.readdirSync(path.join(leagueDir, altDirName)).filter(f => f.toLowerCase().endsWith('.png'))) {
+          const clubId = extractAltClubId(f)
+          if (clubId) {
+            if (!altKits[clubId]) altKits[clubId] = []
+            altKits[clubId].push(`${altDirName}/${f}`)
+          }
+        }
+      }
+
+      const clubs = [...clubMap.entries()]
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([id, { prefix, sep, kits }]) => {
+          const entry = { id, kits: [...kits].sort((a, b) => a - b) }
+          if (prefix !== id) entry.prefix = prefix
+          if (sep !== '_') entry.sep = sep
+          return entry
+        })
+
+      result[season].push({
+        league,
+        clubs,
+        ...(Object.keys(altKits).length ? { altKits } : {}),
+      })
+    }
+  }
+  return result
+}
+
+function kitsManifestPlugin() {
+  const virtualId = 'virtual:kits-manifest'
+  const resolvedId = '\0' + virtualId
+  return {
+    name: 'kits-manifest',
+    resolveId(id) { if (id === virtualId) return resolvedId },
+    load(id) {
+      if (id === resolvedId) return `export const kitsManifest = ${JSON.stringify(buildManifest())}`
+    },
+  }
+}
+
+export default defineConfig({
+  plugins: [react(), kitsManifestPlugin()],
+})
