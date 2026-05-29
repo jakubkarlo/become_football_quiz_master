@@ -1,0 +1,10 @@
+.stadium-settings {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--bg);
+  max-width: 480px;
+  width: 100%;
+  margin: 0 auto;
+}

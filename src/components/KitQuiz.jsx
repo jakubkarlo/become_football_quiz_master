@@ -4,6 +4,19 @@ import './KitQuiz.css'
 
 const TOTAL = 10
 
+function PitchGrid() {
+  return (
+    <svg viewBox="0 0 300 540" preserveAspectRatio="none" className="pitch-grid" aria-hidden="true">npm
+      <rect x="14" y="20" width="272" height="500" fill="none" stroke="var(--ink)" strokeWidth="1" strokeOpacity="0.2" />
+      <line x1="14" y1="270" x2="286" y2="270" stroke="var(--ink)" strokeWidth="1" strokeOpacity="0.2" />
+      <circle cx="150" cy="270" r="44" fill="none" stroke="var(--ink)" strokeWidth="1" strokeOpacity="0.2" />
+      <circle cx="150" cy="270" r="2" fill="var(--ink)" fillOpacity="0.2" />
+      <rect x="80" y="20" width="140" height="60" fill="none" stroke="var(--ink)" strokeWidth="1" strokeOpacity="0.2" />
+      <rect x="80" y="460" width="140" height="60" fill="none" stroke="var(--ink)" strokeWidth="1" strokeOpacity="0.2" />
+    </svg>
+  )
+}
+
 export default function KitQuiz({ clubs, kitTypes = [1, 2, 3], onBack }) {
   const [usedKeys] = useState(() => new Set())
   const [question, setQuestion] = useState(() => generateQuestion(clubs, new Set(), kitTypes))
@@ -14,9 +27,10 @@ export default function KitQuiz({ clubs, kitTypes = [1, 2, 3], onBack }) {
   const [score, setScore] = useState(0)
   const [round, setRound] = useState(1)
   const [done, setDone] = useState(false)
+  const [leagueVisible, setLeagueVisible] = useState(false)
+  const [kitTypeVisible, setKitTypeVisible] = useState(false)
   const inputRef = useRef(null)
 
-  // dedupe suggestions by club id (same club can appear in multiple leagues)
   const uniqueSuggestions = suggestions.filter((c, i, arr) => arr.findIndex(x => x.id === c.id) === i)
 
   useEffect(() => {
@@ -66,6 +80,8 @@ export default function KitQuiz({ clubs, kitTypes = [1, 2, 3], onBack }) {
     setActiveIdx(-1)
     setResult(null)
     setRound(r => r + 1)
+    setLeagueVisible(false)
+    setKitTypeVisible(false)
   }, [round, question, usedKeys, clubs, kitTypes])
 
   const handleRestart = useCallback(() => {
@@ -78,25 +94,33 @@ export default function KitQuiz({ clubs, kitTypes = [1, 2, 3], onBack }) {
     setScore(0)
     setRound(1)
     setDone(false)
+    setLeagueVisible(false)
+    setKitTypeVisible(false)
   }, [usedKeys, clubs, kitTypes])
 
   if (done) {
     return (
       <div className="quiz-done">
-        <div className="done-icon">{score >= 8 ? '🏆' : score >= 5 ? '⚽' : '📚'}</div>
-        <h2>Koniec rundy!</h2>
-        <div className="done-score">
-          <span className="score-big">{score}</span>
-          <span className="score-of">/ {TOTAL}</span>
+        <div className="quiz-header">
+          <button className="header-back" onClick={onBack}>&#8249;</button>
+          <span className="header-label">WYNIK BRIEFA</span>
         </div>
-        <p className="done-msg">
-          {score >= 8 ? 'Świetny wynik! Znasz koszulki bardzo dobrze.' :
-           score >= 5 ? 'Nieźle! Jeszcze trochę treningu i będzie idealnie.' :
-           'Trzeba potrenować — koszulki czekają!'}
-        </p>
-        <div className="done-btns">
-          <button className="btn-secondary" onClick={onBack}>Zmień wybór</button>
-          <button className="btn-primary" onClick={handleRestart}>Zagraj jeszcze raz</button>
+        <div className="done-body">
+          <div className="done-score-block">
+            <div className="done-score-sublabel">PUNKTY</div>
+            <div className="done-score-val">
+              {score}<span className="done-score-of">/{TOTAL}</span>
+            </div>
+          </div>
+          <p className="done-msg">
+            {score >= 8 ? 'Świetny wynik! Znasz koszulki bardzo dobrze.' :
+             score >= 5 ? 'Nieźle! Jeszcze trochę treningu i będzie idealnie.' :
+             'Trzeba potrenować — koszulki czekają!'}
+          </p>
+          <div className="done-btns">
+            <button className="btn-secondary" onClick={onBack}>Zmień zakres</button>
+            <button className="btn-primary" onClick={handleRestart}>Zagraj jeszcze raz</button>
+          </div>
         </div>
       </div>
     )
@@ -104,68 +128,93 @@ export default function KitQuiz({ clubs, kitTypes = [1, 2, 3], onBack }) {
 
   if (!question) return null
 
+  const leagueText = `${question.club.league} · ${question.club.season.replace('_', '/')}`
+  const kitLabel = question.kitLabel || 'Koszulka'
+
   return (
     <div className="kit-quiz">
-      <div className="quiz-meta">
-        <span className="league-badge">{question.club.league} · {question.club.season.replace('_', '/')}</span>
-        <span className="progress-text">{round} / {TOTAL}</span>
-      </div>
-
-      <div className="progress-bar">
-        <div className="progress-fill" style={{ width: `${((round - 1) / TOTAL) * 100}%` }} />
-      </div>
-
-      <div className="score-row">
-        <span className="score-label">Punkty</span>
-        <span className="score-value">{score}</span>
-      </div>
-
-      <div className="kit-card">
-        <div className="kit-type-badge">{question.kitLabel}</div>
-        <div className="kit-image-wrapper">
-          <img
-            key={question.key}
-            src={question.imageUrl}
-            alt="Koszulka — zgadnij klub"
-            className="kit-image"
-          />
-          {!result && <div className="logo-cover">?</div>}
+      <div className="quiz-header">
+        <button className="header-back" onClick={onBack}>&#8249;</button>
+        <div className="header-center">
+          {(leagueVisible || result)
+            ? <span className="hint-pill">{leagueText}</span>
+            : <button className="hint-btn" onClick={() => setLeagueVisible(true)}>Pokaż ligę</button>
+          }
+        </div>
+        <div className="header-right">
+          <div className="header-round">
+            {String(round).padStart(2, '0')}<span className="header-round-of">/{TOTAL}</span>
+          </div>
         </div>
       </div>
 
-      <p className="question-prompt">Jakiego klubu to koszulka?</p>
+      <div className="quiz-progress">
+        {Array.from({ length: TOTAL }).map((_, i) => (
+          <div key={i} className={`progress-seg${i < round ? ' seg-done' : ''}`} />
+        ))}
+      </div>
 
-      <div className="answer-area">
-        <div className="input-wrap">
-          <input
-            ref={inputRef}
-            className={`answer-input${result ? (result.correct ? ' input-correct' : ' input-wrong') : ''}`}
-            type="text"
-            placeholder="Wpisz nazwę klubu…"
-            value={input}
-            onChange={handleInput}
-            onKeyDown={handleKeyDown}
-            disabled={!!result}
-            autoComplete="off"
-          />
+      <div className="quiz-board">
+        <PitchGrid />
+        <div className="board-corner-labels">
+          {(kitTypeVisible || result)
+            ? <span className="hint-pill">{kitLabel}</span>
+            : <button className="hint-btn" onClick={() => setKitTypeVisible(true)}>Pokaż wariant</button>
+          }
+        </div>
+
+        <div className="board-center">
+          <div className="jersey-frame">
+            <div className="bracket tl" />
+            <div className="bracket tr" />
+            <div className="bracket bl" />
+            <div className="bracket br" />
+            <img
+              key={question.key}
+              src={question.imageUrl}
+              alt="Koszulka"
+              className="jersey-img"
+            />
+            {!result && <div className="logo-mask">?</div>}
+          </div>
+        </div>
+      </div>
+
+      <div className="quiz-answer">
+
+
+        <div className="input-row">
+          <div className="input-wrap">
+            <input
+              ref={inputRef}
+              className={`answer-input${result ? (result.correct ? ' input-correct' : ' input-wrong') : ''}`}
+              type="text"
+              placeholder="Wpisz klub…"
+              value={input}
+              onChange={handleInput}
+              onKeyDown={handleKeyDown}
+              disabled={!!result}
+              autoComplete="off"
+            />
+            {uniqueSuggestions.length > 0 && !result && (
+              <ul className="suggestions">
+                {uniqueSuggestions.map((club, i) => (
+                  <li
+                    key={club.id}
+                    className={`suggestion-item${i === activeIdx ? ' active' : ''}`}
+                    onMouseDown={() => { setInput(club.name); submit(club) }}
+                    onMouseEnter={() => setActiveIdx(i)}
+                  >
+                    {club.name}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
           {!result && (
             <button className="submit-btn" onClick={() => submit(null)} disabled={input.trim().length < 2}>
               OK
             </button>
-          )}
-          {uniqueSuggestions.length > 0 && !result && (
-            <ul className="suggestions">
-              {uniqueSuggestions.map((club, i) => (
-                <li
-                  key={club.id}
-                  className={`suggestion-item${i === activeIdx ? ' active' : ''}`}
-                  onMouseDown={() => { setInput(club.name); submit(club) }}
-                  onMouseEnter={() => setActiveIdx(i)}
-                >
-                  {club.name}
-                </li>
-              ))}
-            </ul>
           )}
         </div>
 

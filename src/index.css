@@ -1,0 +1,30 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #F4F1E8;
+  --board: #F9F6EE;
+  --panel: #ECE8DC;
+  --line: #CEC8B6;
+  --ink: #1F2A23;
+  --muted: #7C8A7E;
+  --accent: #2F6B4A;
+  --accent2: #5B8A6B;
+  --green-pale: #D6EBE0;
+  --red: #B03A2A;
+  --red-pale: #F0DDD9;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}

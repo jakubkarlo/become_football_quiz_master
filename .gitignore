@@ -26,3 +26,6 @@ dist-ssr
 *.sw?
 
 .claudeignore
+
+# claude-docker secret-scanner storage
+.coding-agents/

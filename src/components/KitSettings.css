@@ -1,0 +1,156 @@
+.kit-settings {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--bg);
+  max-width: 480px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* ── Header ───────────────────────────── */
+.settings-header {
+  padding: 16px 16px 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.header-back {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line);
+  background: none;
+  display: grid;
+  place-items: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 18px;
+  color: var(--ink);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+  line-height: 1;
+}
+
+.header-back:hover { background: var(--panel); }
+
+.header-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 2px;
+  font-weight: 700;
+}
+
+.settings-title {
+  font-family: 'Archivo Narrow', system-ui, sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  color: var(--ink);
+  margin-top: 2px;
+}
+
+/* ── Body ─────────────────────────────── */
+.settings-body {
+  flex: 1;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.settings-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--muted);
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  padding: 8px 16px;
+  border: 1px solid var(--line);
+  background: var(--board);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.chip:hover {
+  border-color: var(--accent2);
+  color: var(--accent);
+}
+
+.chip-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg);
+}
+
+.chip-active:hover {
+  background: var(--accent2);
+  border-color: var(--accent2);
+}
+
+.settings-summary {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.summary-count {
+  font-family: 'Archivo Narrow', system-ui, sans-serif;
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.summary-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.5px;
+}
+
+/* ── Footer ───────────────────────────── */
+.settings-footer {
+  padding: 16px 20px 28px;
+  border-top: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.btn-start {
+  width: 100%;
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  padding: 15px 28px;
+  font-family: 'Archivo Narrow', system-ui, sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-start:hover:not(:disabled) { background: var(--accent2); }
+.btn-start:disabled { opacity: 0.35; cursor: default; }

@@ -11,7 +11,7 @@ const KIT_TYPE_OPTIONS = [
   { value: 'alt', label: 'Alternatywna' },
 ]
 
-export default function KitSettings({ onStart }) {
+export default function KitSettings({ onStart, onBack }) {
   const seasons = getSeasons()
   const [selSeason, setSelSeason] = useState(null)
   const [selLeagues, setSelLeagues] = useState([])
@@ -55,63 +55,71 @@ export default function KitSettings({ onStart }) {
 
   return (
     <div className="kit-settings">
-      <div className="settings-heading">
-        <h2>Koszulki</h2>
-        <p>Wybierz zakres lub kliknij Start żeby grać ze wszystkim</p>
-      </div>
-
-      <div className="settings-section">
-        <div className="settings-label">Sezon</div>
-        <div className="chip-row">
-          {seasons.map(s => (
-            <button
-              key={s}
-              className={`chip${selSeason === s ? ' chip-active' : ''}`}
-              onClick={() => handleSeasonClick(s)}
-            >
-              {seasonLabel(s)}
-            </button>
-          ))}
+      <div className="settings-header">
+        <button className="header-back" onClick={onBack}>‹</button>
+        <div className="settings-header-info">
+          <div className="header-label">KOSZULKI · D-01</div>
+          <div className="settings-title">Zakres briefa</div>
         </div>
       </div>
 
-      <div className="settings-section">
-        <div className="settings-label">Liga</div>
-        <div className="chip-row">
-          {availableLeagues.map(l => (
-            <button
-              key={l}
-              className={`chip${selLeagues.includes(l) ? ' chip-active' : ''}`}
-              onClick={() => toggleLeague(l)}
-            >
-              {l}
-            </button>
-          ))}
+      <div className="settings-body">
+        <div className="settings-section">
+          <div className="settings-label">SEZON</div>
+          <div className="chip-row">
+            {seasons.map(s => (
+              <button
+                key={s}
+                className={`chip${selSeason === s ? ' chip-active' : ''}`}
+                onClick={() => handleSeasonClick(s)}
+              >
+                {seasonLabel(s)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="settings-section">
+          <div className="settings-label">LIGA</div>
+          <div className="chip-row">
+            {availableLeagues.map(l => (
+              <button
+                key={l}
+                className={`chip${selLeagues.includes(l) ? ' chip-active' : ''}`}
+                onClick={() => toggleLeague(l)}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="settings-section">
+          <div className="settings-label">ZESTAW</div>
+          <div className="chip-row">
+            {KIT_TYPE_OPTIONS.map(({ value, label }) => (
+              <button
+                key={value}
+                className={`chip${selKitTypes.includes(value) ? ' chip-active' : ''}`}
+                onClick={() => toggleKitType(value)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="settings-summary">
+          <span className="summary-count">{totalKits}</span>
+          <span className="summary-label"> koszulek w puli</span>
         </div>
       </div>
 
-      <div className="settings-section">
-        <div className="settings-label">Zestaw koszulek</div>
-        <div className="chip-row">
-          {KIT_TYPE_OPTIONS.map(({ value, label }) => (
-            <button
-              key={value}
-              className={`chip${selKitTypes.includes(value) ? ' chip-active' : ''}`}
-              onClick={() => toggleKitType(value)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+      <div className="settings-footer">
+        <button className="btn-start" onClick={handleStart} disabled={selKitTypes.length === 0}>
+          Rozpocznij brief →
+        </button>
       </div>
-
-      <div className="settings-summary">
-        {totalKits} koszulek w puli
-      </div>
-
-      <button className="btn-primary" onClick={handleStart} disabled={selKitTypes.length === 0}>
-        Rozpocznij quiz →
-      </button>
     </div>
   )
 }
