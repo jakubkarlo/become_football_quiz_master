@@ -16,7 +16,8 @@ W repo jest tylko lista stadionów w JSON-ie.
 | Plik | Co zawiera | Kto edytuje |
 |---|---|---|
 | `scripts/fetch-stadiums.mjs` | skrypt pobierający dane z Wikidata | programista (konfiguracja krajów) |
-| `generated/stadiums.json` | wygenerowana lista stadionów, **nie jest w gicie** | tylko skrypt, nie edytować ręcznie |
+| `generated/stadiums/index.json` | kraje i `[id, pojemność]` każdego stadionu (dla filtrów i licznika w ustawieniach) | tylko skrypt, **nie jest w gicie** |
+| `generated/stadiums/continents/<kontynent>.json` | pełne dane stadionów, osobny plik na kontynent | tylko skrypt, **nie jest w gicie** |
 | `src/data/stadiumsOverrides.js` | ręczne poprawki: aliasy, nazwy, wykluczenia | ręcznie |
 
 ### Pobieranie stadionów
@@ -25,49 +26,92 @@ W repo jest tylko lista stadionów w JSON-ie.
 npm run fetch:stadiums
 ```
 
-Skrypt odpytuje Wikidata (SPARQL) i **nadpisuje** `generated/stadiums.json`. Trwa to kilka sekund.
+Skrypt odpytuje Wikidata (SPARQL) i pobiera dane **kontynent po kontynencie**.
+Każdy kontynent zapisuje od razu po pobraniu: plik `continents/<kontynent>.json` i swoje wpisy w `index.json`.
 Katalog `generated/` jest w `.gitignore`, więc każdy generuje dane u siebie.
 
-**Nie trzeba tego robić ręcznie przy pierwszym uruchomieniu.** `npm run dev` i `npm run build` (przez `predev`/`prebuild`)
-same pobierają dane, jeśli pliku brakuje, i zostawiają istniejący plik bez zmian.
-Ręczne `npm run fetch:stadiums` jest potrzebne tylko do odświeżenia danych albo po zmianie konfiguracji krajów.
-Build wymaga więc dostępu do `query.wikidata.org`, jeśli `generated/stadiums.json` jeszcze nie istnieje.
+**`npm run dev` niczego nie pobiera.** Bez danych kafelek „STADIONY” w menu jest wyszarzony,
+a po `npm run fetch:stadiums` odblokowuje się sam (w razie czego odśwież stronę).
+`npm run build` (przez `prebuild`) pobiera dane tylko wtedy, gdy ich brakuje, a istniejących nie rusza.
+Build wymaga więc dostępu do `query.wikidata.org`, jeśli `generated/stadiums/index.json` jeszcze nie istnieje.
 
 Dane w Wikidata zmieniają się między pobraniami, więc po odświeżeniu warto przejrzeć quiz albo sam JSON.
 
 Do quizu trafia stadion, który w Wikidata:
-- leży w kraju z listy `COUNTRIES`,
+- leży w kraju z regionów skonfigurowanych w `REGIONS` (opis niżej),
 - jest stadionem piłkarskim albo ma przypisany sport „piłka nożna”,
 - ma pojemność, współrzędne i zdjęcie,
 - ma pojemność co najmniej `MIN_CAPACITY` (domyślnie 5000),
 - nie ma daty rozbiórki ani zamknięcia.
 
-**Dodanie kraju:** dopisz wpis do `COUNTRIES` w skrypcie i uruchom go ponownie.
+**Zakres krajów** ustawia się w `REGIONS` w skrypcie. Region to albo jawna lista krajów, albo kontynent z Wikidata.
+Dla kontynentu skrypt sam pobiera wszystkie leżące na nim państwa i odpytuje każde z osobna.
+Jedno zapytanie na cały kontynent przekroczyłoby limit 60 s.
 
 ```js
-const COUNTRIES = [
-  { qid: 'Q36', key: 'poland', continent: 'europe', nameLang: 'pl' },
-  { qid: 'Q145', key: 'united_kingdom', continent: 'europe', nameLang: 'en', metroAreas: { Q23306: 'Londyn' } },
-  { qid: 'Q183', key: 'germany', continent: 'europe', nameLang: 'en' },
+const REGIONS = [
+  { continent: 'europe', countries: EUROPE },                  // jawna lista: Polska, Wielka Brytania, top 5, ...
+  { continent: 'central_america', countries: CENTRAL_AMERICA },
+  { continent: 'north_america', wikidataContinent: 'Q49' },     // wszystkie państwa kontynentu
+  { continent: 'south_america', wikidataContinent: 'Q18' },
+  { continent: 'africa', wikidataContinent: WD_AFRICA },
+  { continent: 'asia', wikidataContinent: 'Q48', excludeContinents: [WD_EUROPE, WD_AFRICA] },
 ]
 ```
 
-- `qid` to id kraju w Wikidata. Znajdziesz je na końcu adresu strony kraju, np. `wikidata.org/wiki/Q183`.
+- **Dodanie kraju europejskiego:** dopisz jego id z Wikidata do `EUROPE`. Id znajdziesz na końcu adresu strony kraju, np. `wikidata.org/wiki/Q183`.
   Anglia, Szkocja i Walia nie są w Wikidata państwami, dlatego są razem jako Wielka Brytania (`Q145`).
-- `nameLang` to język etykiety użytej jako nazwa stadionu. Druga etykieta trafia do aliasów.
-  Dla krajów zagranicznych ustawiaj `'en'`, bo polskie etykiety często mają stare nazwy sponsorskie.
-- `metroAreas` (opcjonalne): obszar w Wikidata → nazwa miasta, przypisywana wszystkim stadionom w tym obszarze.
+- **Kraj należy do pierwszego regionu, który go zwróci.** Dlatego jawne listy są na początku.
+  Państwa przesmyku z `CENTRAL_AMERICA` (Gwatemala–Panama) nie trafiają więc do Ameryki Północnej.
+  Meksyk i Karaiby zostają w Ameryce Północnej, a Egipt trafia do Afryki.
+- **Państwa leżące częściowo w Europie** (Rosja, Turcja, Kazachstan, Gruzja...) są wykluczone z Azji, bo grają w UEFA.
+  Dostaną się do quizu tylko po dopisaniu do `EUROPE`.
+- **`continent` musi mieć polską nazwę** w `src/data/geoLabels.js` (`CONTINENT_LABELS`).
+  Polskie nazwy krajów skrypt pobiera z Wikidata do pola `countryName`.
+
+Ustawienia dla pojedynczych krajów są w `COUNTRY_OPTIONS`. Domyślnie żadne nie są potrzebne:
+
+```js
+const COUNTRY_OPTIONS = {
+  Q36: { nameLang: 'pl' },
+  Q145: { metroAreas: { Q23306: 'Londyn' } },
+}
+```
+
+- `nameLang` to język etykiety użytej jako nazwa stadionu, domyślnie `'en'`. Druga etykieta trafia do aliasów.
+  Polskie etykiety zagranicznych stadionów często mają stare nazwy sponsorskie, dlatego `'pl'` jest tylko dla Polski.
+- `metroAreas`: obszar w Wikidata → nazwa miasta, przypisywana wszystkim stadionom w tym obszarze.
   Potrzebne tam, gdzie stadiony są przypisane do dzielnic, np. stadiony Londynu leżą w boroughs.
-- `key` i `continent` muszą odpowiadać kluczom w `src/data/geoLabels.js`, bo stamtąd biorą się polskie nazwy w ustawieniach.
-  Jeśli klucza tam nie ma, dopisz go.
+
+Pełne pobranie obejmuje ponad 130 krajów i trwa kilka minut. Skrypt wysyła najwyżej 4 zapytania naraz,
+a po błędzie 429/5xx ponawia zapytanie do 3 razy.
+
+**Gdy pobieranie przerwie się w połowie**, kontynenty pobrane przed błędem zostają zapisane,
+a kontynent, na którym wystąpił błąd, zachowuje swoje poprzednie dane. Dociągasz tylko brakujące:
+
+```bash
+npm run fetch:stadiums -- --continent asia
+npm run fetch:stadiums -- --continent africa,asia
+```
+
+Pliki zapisywane są atomowo (najpierw plik tymczasowy, potem zmiana nazwy), więc przerwanie nie zostawi uszkodzonego JSON-a.
+Pełne uruchomienie (bez `--continent`) usuwa też dane kontynentów, których nie ma już w `REGIONS`.
+
+### Ładowanie danych w aplikacji
+
+Główna paczka JS nie zawiera danych stadionów. Vite tworzy z każdego pliku osobny fragment (chunk):
+1. po wejściu w ustawienia quizu stadionów ładuje się tylko `index.json` (kilkadziesiąt kB), czyli lista krajów i licznik;
+2. po kliknięciu „Rozpocznij” ładują się pliki tylko tych kontynentów, które obejmuje wybór.
+
+Poprawki z `stadiumsOverrides.js` są nakładane także na indeks, więc licznik w ustawieniach uwzględnia wykluczenia i zmiany pojemności.
 
 ### Ręczne poprawki (`stadiumsOverrides.js`)
 
 Wikidata nie zawsze ma nazwę, której używają kibice, a czasem ma słabe zdjęcie.
-Poprawki zapisujemy w `src/data/stadiumsOverrides.js`, a **nie** w `generated/stadiums.json`.
+Poprawki zapisujemy w `src/data/stadiumsOverrides.js`, a **nie** w `generated/`.
 Dzięki temu nie giną przy ponownym pobraniu. Aplikacja nakłada je na dane z JSON-a przy starcie.
 
-Wpis jest przypisany do id stadionu z Wikidata. To pole `"id"` w `generated/stadiums.json`, np. `Q188699`.
+Wpis jest przypisany do id stadionu z Wikidata. To pole `"id"` w `generated/stadiums/continents/*.json`, np. `Q188699`.
 
 ```js
 const overrides = {

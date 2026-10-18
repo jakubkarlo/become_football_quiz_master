@@ -2,6 +2,7 @@ const CONTINENT_LABELS = {
   europe: 'Europa',
   south_america: 'Ameryka Płd.',
   north_america: 'Ameryka Płn.',
+  central_america: 'Ameryka Śr.',
   africa: 'Afryka',
   asia: 'Azja',
   oceania: 'Oceania',

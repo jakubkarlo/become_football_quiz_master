@@ -165,7 +165,7 @@ export default function StadiumQuiz({ stadiums, onBack }) {
         <button className="header-back" onClick={onBack}>&#8249;</button>
         <div className="header-center">
           {(countryVisible || result)
-            ? <span className="hint-pill">{countryLabel(question.country)}</span>
+            ? <span className="hint-pill">{question.countryName || countryLabel(question.country)}</span>
             : <button className="hint-btn" onClick={() => setCountryVisible(true)}>Pokaż kraj</button>
           }
         </div>

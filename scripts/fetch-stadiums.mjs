@@ -1,29 +1,72 @@
-// Fetches football stadiums from Wikidata and writes generated/stadiums.json (not tracked by git).
+// Fetches football stadiums from Wikidata and writes generated/stadiums/ (not tracked by git):
+//   index.json               — countries (Polish name, continent) and [id, capacity] of every stadium;
+//                              small, loaded by the settings screen for filters and counts
+//   continents/<key>.json    — full stadium records, loaded lazily only for the continents being played
 // Images are not downloaded — the app hotlinks Wikimedia Commons thumbnails.
 //
-// Usage: npm run fetch:stadiums                       — always re-fetch
-//        node scripts/fetch-stadiums.mjs --if-missing — fetch only when the file is absent (predev/prebuild)
+// Usage: npm run fetch:stadiums                          — re-fetch every continent
+//        npm run fetch:stadiums -- --continent asia     — re-fetch only the listed continent(s), comma-separated
+//        node scripts/fetch-stadiums.mjs --if-missing    — fetch only when the data is absent (prebuild)
+// Each continent is saved (its file + index entries) as soon as it is fetched, so a failed run
+// keeps the continents finished before the failure; re-run with --continent for the rest.
 // Manual corrections (aliases, exclusions) live in src/data/stadiumsOverrides.js, not here,
 // so they survive re-fetching.
 
 import fs from 'fs'
 import path from 'path'
+import { fileURLToPath } from 'url'
 
 const ENDPOINT = 'https://query.wikidata.org/sparql'
 // Wikimedia User-Agent policy: identify the tool and give a contact point.
 const USER_AGENT = 'football-quiz-practice/0.1 (stadium data import; https://www.wikidata.org/wiki/Wikidata:Data_access)'
-const OUTPUT = path.resolve(import.meta.dirname, '../generated/stadiums.json')
+const OUTPUT_DIR = fileURLToPath(new URL('../generated/stadiums', import.meta.url))
+const INDEX_FILE = path.join(OUTPUT_DIR, 'index.json')
 const MIN_CAPACITY = 5000
 
-// key/continent must match the labels in src/data/geoLabels.js
-// nameLang    — label language used as the stadium name (the other one becomes an alias).
-//               Polish labels of foreign stadiums are often stale sponsor names.
-// metroAreas  — areas whose stadiums all get one city name (London stadiums sit in boroughs).
-const COUNTRIES = [
-  { qid: 'Q36', key: 'poland', continent: 'europe', nameLang: 'pl' },
-  { qid: 'Q145', key: 'united_kingdom', continent: 'europe', nameLang: 'en', metroAreas: { Q23306: 'Londyn' } },
+const CONCURRENCY = 4      // Wikidata allows up to 5 parallel queries per client
+const MAX_ATTEMPTS = 3
+
+// Which countries to fetch. Each region is either an explicit country list or a Wikidata continent
+// (all sovereign states on it). `continent` must match a key in src/data/geoLabels.js.
+// A country is assigned to the first region that lists it, so explicit regions go first.
+const EUROPE = [
+  'Q36',   // Poland
+  'Q145',  // United Kingdom (England, Scotland, Wales, Northern Ireland are not states in Wikidata)
+  'Q29',   // Spain
+  'Q38',   // Italy
+  'Q183',  // Germany
+  'Q142',  // France
+  'Q31',   // Belgium
+  'Q55',   // Netherlands
+  'Q213',  // Czech Republic
+  'Q41',   // Greece
+  'Q224',  // Croatia
+]
+// Not a continent in Wikidata (it is part of North America) — the seven isthmus states.
+const CENTRAL_AMERICA = ['Q774', 'Q242', 'Q783', 'Q792', 'Q811', 'Q800', 'Q804']
+const WD_EUROPE = 'Q46'
+const WD_AFRICA = 'Q15'
+
+const REGIONS = [
+  { continent: 'europe', countries: EUROPE },
+  { continent: 'central_america', countries: CENTRAL_AMERICA },
+  { continent: 'north_america', wikidataContinent: 'Q49' },
+  { continent: 'south_america', wikidataContinent: 'Q18' },
+  { continent: 'africa', wikidataContinent: WD_AFRICA },
+  // Transcontinental states partly in Europe (Russia, Turkey, Kazakhstan, ...) play in UEFA — not Asia.
+  { continent: 'asia', wikidataContinent: 'Q48', excludeContinents: [WD_EUROPE, WD_AFRICA] },
 ]
 
+// Per-country tweaks; everything else uses the defaults.
+// nameLang    — label language used as the stadium name (the other one becomes an alias).
+//               Default 'en': Polish labels of foreign stadiums are often stale sponsor names.
+// metroAreas  — areas whose stadiums all get one city name (London stadiums sit in boroughs).
+const COUNTRY_OPTIONS = {
+  Q36: { nameLang: 'pl' },
+  Q145: { metroAreas: { Q23306: 'Londyn' } },
+}
+
+const SOVEREIGN_STATE = 'Q3624078'
 const FOOTBALL = 'Q2736'
 const FOOTBALL_VENUE = 'Q1154710'
 const CITY = 'Q515'
@@ -72,12 +115,80 @@ GROUP BY ?stadium
 ORDER BY DESC(?capacity)`
 }
 
+// Countries of a region with their Polish/English names.
+function buildCountriesQuery({ countries, wikidataContinent, excludeContinents = [] }) {
+  const scope = countries
+    ? `VALUES ?country { ${countries.map(id => `wd:${id}`).join(' ')} }`
+    : `?country wdt:P31 wd:${SOVEREIGN_STATE}; wdt:P30 wd:${wikidataContinent}.
+  ${excludeContinents.map(id => `FILTER NOT EXISTS { ?country wdt:P30 wd:${id} }`).join('\n  ')}`
+  return `
+SELECT ?country (SAMPLE(?labelPl) AS ?pl) (SAMPLE(?labelEn) AS ?en) WHERE {
+  ${scope}
+  OPTIONAL { ?country rdfs:label ?labelPl. FILTER(LANG(?labelPl) = "pl") }
+  OPTIONAL { ?country rdfs:label ?labelEn. FILTER(LANG(?labelEn) = "en") }
+}
+GROUP BY ?country`
+}
+
+// Retries rate limiting (429) and server errors/timeouts (5xx) with backoff; other errors fail at once.
 async function runQuery(query) {
-  const res = await fetch(`${ENDPOINT}?query=${encodeURIComponent(query)}`, {
-    headers: { Accept: 'application/sparql-results+json', 'User-Agent': USER_AGENT },
-  })
-  if (!res.ok) throw new Error(`SPARQL request failed: HTTP ${res.status}`)
-  return (await res.json()).results.bindings
+  for (let attempt = 1; ; attempt++) {
+    const res = await fetch(`${ENDPOINT}?query=${encodeURIComponent(query)}`, {
+      headers: { Accept: 'application/sparql-results+json', 'User-Agent': USER_AGENT },
+    })
+    if (res.ok) return (await res.json()).results.bindings
+    const retryable = res.status === 429 || res.status >= 500
+    if (!retryable || attempt >= MAX_ATTEMPTS) throw new Error(`SPARQL request failed: HTTP ${res.status}`)
+    const retryAfter = Number(res.headers.get('retry-after')) || 5 * attempt
+    console.warn(`HTTP ${res.status}, retrying in ${retryAfter}s (attempt ${attempt}/${MAX_ATTEMPTS})`)
+    await new Promise(resolve => setTimeout(resolve, retryAfter * 1000))
+  }
+}
+
+// Runs `fn` over items with at most `limit` calls in flight; results keep the input order.
+async function mapLimit(items, limit, fn) {
+  const results = new Array(items.length)
+  let next = 0
+  async function worker() {
+    while (next < items.length) {
+      const i = next++
+      results[i] = await fn(items[i])
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker))
+  return results
+}
+
+// "Czech Republic" → "czech_republic", "Côte d'Ivoire" → "cote_d_ivoire"
+function slugify(text) {
+  return text.normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')
+}
+
+const qidOf = uri => uri.split('/').pop()
+
+// Resolves REGIONS into a flat country list; a country belongs to the first region that yields it.
+async function resolveCountries() {
+  const seen = new Set()
+  const countries = []
+  for (const region of REGIONS) {
+    const rows = await runQuery(buildCountriesQuery(region))
+    for (const row of rows) {
+      const qid = qidOf(row.country.value)
+      const en = row.en?.value
+      if (!en || seen.has(qid)) continue
+      seen.add(qid)
+      countries.push({
+        qid,
+        key: slugify(en),
+        countryName: row.pl?.value || en,
+        continent: region.continent,
+        nameLang: 'en',
+        ...COUNTRY_OPTIONS[qid],
+      })
+    }
+  }
+  return countries
 }
 
 // "Point(16.8586 52.3967)" → [lat, lon]
@@ -125,6 +236,7 @@ function toRecord(row, country) {
     city: country.metroAreas?.[metroId]
       || cleanCity(row.city?.value || row.cityFallback?.value || row.adm?.value || row.admFallback?.value || ''),
     country: country.key,
+    countryName: country.countryName,
     continent: country.continent,
     capacity: Math.round(Number(row.capacity.value)),
     coord,
@@ -133,19 +245,89 @@ function toRecord(row, country) {
   }
 }
 
-async function main() {
-  if (process.argv.includes('--if-missing') && fs.existsSync(OUTPUT)) return
-  const all = []
-  for (const country of COUNTRIES) {
-    const rows = await runQuery(buildQuery(country))
-    const records = rows.map(r => toRecord(r, country)).filter(Boolean)
-    console.log(`${country.key}: ${records.length} stadiums`)
-    all.push(...records)
+// --continent europe,asia → only these continents; others keep their existing files.
+function parseContinentArg(known) {
+  const i = process.argv.indexOf('--continent')
+  if (i === -1) return null
+  const only = (process.argv[i + 1] || '').split(',').filter(Boolean)
+  const unknown = only.filter(c => !known.includes(c))
+  if (!only.length || unknown.length) {
+    throw new Error(`--continent expects a comma-separated list of: ${known.join(', ')}`)
   }
-  all.sort((a, b) => b.capacity - a.capacity)
-  fs.mkdirSync(path.dirname(OUTPUT), { recursive: true })
-  fs.writeFileSync(OUTPUT, JSON.stringify(all, null, 2) + '\n')
-  console.log(`Wrote ${all.length} stadiums to ${path.relative(process.cwd(), OUTPUT)}`)
+  return only
+}
+
+function readIndex() {
+  if (!fs.existsSync(INDEX_FILE)) return { countries: {} }
+  return JSON.parse(fs.readFileSync(INDEX_FILE, 'utf8'))
+}
+
+// Write to a temp file and rename, so an interrupted run never leaves a half-written file.
+function writeJson(file, data, pretty = false) {
+  fs.writeFileSync(`${file}.tmp`, JSON.stringify(data, null, pretty ? 2 : 0) + '\n')
+  fs.renameSync(`${file}.tmp`, file)
+}
+
+const continentFile = continent => path.join(OUTPUT_DIR, 'continents', `${continent}.json`)
+
+// Saves one continent and refreshes its entries in the index right away,
+// so a failure later in the run keeps every continent finished so far.
+function saveContinent(continent, stadiums, countries, index) {
+  writeJson(continentFile(continent), stadiums, true)
+  for (const [key, c] of Object.entries(index.countries)) {
+    if (c.continent === continent) delete index.countries[key]
+  }
+  for (const c of countries) {
+    const own = stadiums.filter(s => s.country === c.key)
+    if (own.length) {
+      index.countries[c.key] = { name: c.countryName, continent, stadiums: own.map(s => [s.id, s.capacity]) }
+    }
+  }
+  writeJson(INDEX_FILE, index)
+}
+
+// Drops files and index entries of continents no longer in REGIONS.
+function pruneContinents(known, index) {
+  for (const file of fs.readdirSync(path.join(OUTPUT_DIR, 'continents'))) {
+    if (!known.includes(file.replace(/\.json(\.tmp)?$/, ''))) fs.rmSync(path.join(OUTPUT_DIR, 'continents', file))
+  }
+  for (const [key, c] of Object.entries(index.countries)) {
+    if (!known.includes(c.continent)) delete index.countries[key]
+  }
+  writeJson(INDEX_FILE, index)
+}
+
+async function main() {
+  if (process.argv.includes('--if-missing') && fs.existsSync(INDEX_FILE)) return
+  const known = [...new Set(REGIONS.map(r => r.continent))]
+  const only = parseContinentArg(known)
+
+  // Countries are resolved for all regions even with --continent, so region priority stays the same.
+  const countries = await resolveCountries()
+  fs.mkdirSync(path.join(OUTPUT_DIR, 'continents'), { recursive: true })
+  const index = readIndex()
+
+  for (const continent of known) {
+    if (only && !only.includes(continent)) continue
+    const own = countries.filter(c => c.continent === continent)
+    console.log(`\n== ${continent}: ${own.length} countries`)
+
+    const perCountry = await mapLimit(own, CONCURRENCY, async country => {
+      const rows = await runQuery(buildQuery(country))
+      const records = rows.map(r => toRecord(r, country)).filter(Boolean)
+      console.log(`${continent}/${country.key}: ${records.length} stadiums`)
+      return records
+    })
+
+    // A stadium with several P17 values can come back for two countries — keep the first.
+    const seen = new Set()
+    const stadiums = perCountry.flat().filter(s => !seen.has(s.id) && seen.add(s.id))
+    stadiums.sort((a, b) => b.capacity - a.capacity)
+    saveContinent(continent, stadiums, own, index)
+    console.log(`== ${continent}: saved ${stadiums.length} stadiums to ${path.relative(process.cwd(), continentFile(continent))}`)
+  }
+
+  if (!only) pruneContinents(known, index)
 }
 
 main().catch(err => {
