@@ -10,6 +10,7 @@ const CONTINENT_LABELS = {
 const COUNTRY_LABELS = {
   poland: 'Polska',
   england: 'Anglia',
+  united_kingdom: 'Wielka Brytania',
   spain: 'Hiszpania',
   germany: 'Niemcy',
   italy: 'Włochy',

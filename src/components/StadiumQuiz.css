@@ -27,3 +27,23 @@
   display: block;
   animation: fadeIn 0.3s ease;
 }
+
+/* ── Photo attribution (Wikimedia Commons, CC licences) ── */
+.photo-source {
+  display: block;
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--muted);
+  text-decoration: underline;
+}
+
+/* ── Deck preparation (photo preloading) ── */
+.deck-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 48px 16px;
+  text-align: center;
+  color: var(--muted);
+}

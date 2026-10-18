@@ -1,13 +1,15 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { generateStadiumQuestion, getSuggestions, checkAnswer } from '../data/stadiumUtils.js'
+import { prepareStadiumDeck, getSuggestions, checkAnswer } from '../data/stadiumUtils.js'
 import { continentLabel, countryLabel } from '../data/geoLabels.js'
 import './KitQuiz.css'
 import './StadiumQuiz.css'
 
+const ROUND_SIZE = 10
+
 export default function StadiumQuiz({ stadiums, onBack }) {
-  const TOTAL = Math.min(10, stadiums.length)
-  const [usedKeys] = useState(() => new Set())
-  const [question, setQuestion] = useState(() => generateStadiumQuestion(stadiums, new Set()))
+  const [deck, setDeck] = useState(null) // null while photos are preloading
+  const [progress, setProgress] = useState({ loaded: 0, total: Math.min(ROUND_SIZE, stadiums.length) })
+  const [deckRequest, setDeckRequest] = useState(0) // bumped to prepare a fresh deck
   const [input, setInput] = useState('')
   const [suggestions, setSuggestions] = useState([])
   const [activeIdx, setActiveIdx] = useState(-1)
@@ -18,6 +20,17 @@ export default function StadiumQuiz({ stadiums, onBack }) {
   const [continentVisible, setContinentVisible] = useState(false)
   const [countryVisible, setCountryVisible] = useState(false)
   const inputRef = useRef(null)
+
+  const TOTAL = deck?.length ?? 0
+  const question = deck?.[round - 1]
+
+  useEffect(() => {
+    let cancelled = false
+    prepareStadiumDeck(stadiums, ROUND_SIZE, (loaded, total) => {
+      if (!cancelled) setProgress({ loaded, total })
+    }).then(d => { if (!cancelled) setDeck(d) })
+    return () => { cancelled = true }
+  }, [stadiums, deckRequest])
 
   const uniqueSuggestions = suggestions.filter((s, i, arr) => arr.findIndex(x => x.id === s.id) === i)
 
@@ -58,9 +71,6 @@ export default function StadiumQuiz({ stadiums, onBack }) {
 
   const handleNext = useCallback(() => {
     if (round >= TOTAL) { setDone(true); return }
-    usedKeys.add(question.id)
-    const next = generateStadiumQuestion(stadiums, usedKeys) || generateStadiumQuestion(stadiums, new Set())
-    setQuestion(next)
     setInput('')
     setSuggestions([])
     setActiveIdx(-1)
@@ -68,11 +78,12 @@ export default function StadiumQuiz({ stadiums, onBack }) {
     setRound(r => r + 1)
     setContinentVisible(false)
     setCountryVisible(false)
-  }, [round, TOTAL, question, usedKeys, stadiums])
+  }, [round, TOTAL])
 
   const handleRestart = useCallback(() => {
-    usedKeys.clear()
-    setQuestion(generateStadiumQuestion(stadiums, new Set()))
+    setDeck(null)
+    setProgress({ loaded: 0, total: Math.min(ROUND_SIZE, stadiums.length) })
+    setDeckRequest(n => n + 1)
     setInput('')
     setSuggestions([])
     setActiveIdx(-1)
@@ -82,7 +93,41 @@ export default function StadiumQuiz({ stadiums, onBack }) {
     setDone(false)
     setContinentVisible(false)
     setCountryVisible(false)
-  }, [usedKeys, stadiums])
+  }, [stadiums])
+
+  if (!deck) {
+    return (
+      <div className="stadium-quiz">
+        <div className="quiz-header">
+          <button className="header-back" onClick={onBack}>&#8249;</button>
+          <span className="header-label">PRZYGOTOWANIE BRIEFA</span>
+        </div>
+        <div className="quiz-progress">
+          {Array.from({ length: progress.total }).map((_, i) => (
+            <div key={i} className={`progress-seg${i < progress.loaded ? ' seg-done' : ''}`} />
+          ))}
+        </div>
+        <div className="deck-loading">
+          Wczytywanie zdjęć… {progress.loaded}/{progress.total}
+        </div>
+      </div>
+    )
+  }
+
+  if (!deck.length) {
+    return (
+      <div className="stadium-quiz">
+        <div className="quiz-header">
+          <button className="header-back" onClick={onBack}>&#8249;</button>
+          <span className="header-label">PRZYGOTOWANIE BRIEFA</span>
+        </div>
+        <div className="deck-loading">
+          Nie udało się wczytać zdjęć stadionów. Sprawdź połączenie i spróbuj ponownie.
+          <button className="btn-primary" onClick={handleRestart}>Spróbuj ponownie</button>
+        </div>
+      </div>
+    )
+  }
 
   if (done) {
     return (
@@ -199,6 +244,12 @@ export default function StadiumQuiz({ stadiums, onBack }) {
               ? `Dobrze! To ${question.stadiumName}, ${question.city}`
               : `Błąd — to był ${question.stadiumName}, ${question.city}`}
           </div>
+        )}
+
+        {result && question.imageSource && (
+          <a className="photo-source" href={question.imageSource} target="_blank" rel="noopener noreferrer">
+            Zdjęcie: Wikimedia Commons (autor i licencja)
+          </a>
         )}
 
         {result && (

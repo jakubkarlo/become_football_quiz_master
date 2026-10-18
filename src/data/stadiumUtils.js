@@ -1,60 +1,95 @@
-import { stadiumsManifest } from 'virtual:stadiums-manifest'
-import { getStadium } from './stadiumsDb.js'
+import generatedStadiums from './stadiums.json'
+import { getOverride } from './stadiumsOverrides.js'
 
-export { stadiumsManifest }
+// Commons serves a scaled thumbnail for Special:FilePath when ?width is given.
+const IMAGE_WIDTH = 1280
+
+// Minimum-capacity presets shown in settings; 0 = no limit.
+export const CAPACITY_THRESHOLDS = [0, 10000, 20000, 40000]
+
+const allStadiums = generatedStadiums
+  .map(s => {
+    const override = getOverride(s.id)
+    if (!override) return s
+    const { aliases = [], ...fields } = override
+    return { ...s, ...fields, aliases: [...s.aliases, ...aliases] }
+  })
+  .filter(s => !s.exclude)
+  .map(s => ({ ...s, imageUrl: `${s.image}?width=${IMAGE_WIDTH}` }))
+
+function unique(values) {
+  return [...new Set(values)].sort()
+}
 
 export function getContinents() {
-  return Object.keys(stadiumsManifest).sort()
+  return unique(allStadiums.map(s => s.continent))
 }
 
 export function getCountries(selectedContinents = []) {
-  const continents = selectedContinents.length ? selectedContinents : getContinents()
-  const seen = new Set()
-  return continents
-    .flatMap(c => Object.keys(stadiumsManifest[c] || {}).sort())
-    .filter(c => seen.has(c) ? false : (seen.add(c), true))
+  return unique(allStadiums
+    .filter(s => !selectedContinents.length || selectedContinents.includes(s.continent))
+    .map(s => s.country))
 }
 
-function capitalize(s) {
-  return s.charAt(0).toUpperCase() + s.slice(1)
+export function buildStadiumList(selectedContinents = [], selectedCountries = [], minCapacity = 0) {
+  return allStadiums.filter(s =>
+    (!selectedContinents.length || selectedContinents.includes(s.continent)) &&
+    (!selectedCountries.length || selectedCountries.includes(s.country)) &&
+    s.capacity >= minCapacity
+  )
 }
 
-function parseId(id) {
-  const parts = id.split('_')
-  return {
-    stadiumName: parts.slice(0, -1).map(capitalize).join(' '),
-    city: capitalize(parts[parts.length - 1]),
-    aliases: [],
+const IMAGE_TIMEOUT_MS = 15000
+
+function shuffle(items) {
+  const a = [...items]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[a[i], a[j]] = [a[j], a[i]]
   }
+  return a
 }
 
-export function buildStadiumList(selectedContinents = [], selectedCountries = []) {
-  const continents = selectedContinents.length ? selectedContinents : getContinents()
-  const result = []
-  for (const continent of continents) {
-    for (const country of Object.keys(stadiumsManifest[continent] || {}).sort()) {
-      if (selectedCountries.length && !selectedCountries.includes(country)) continue
-      for (const { id, file } of stadiumsManifest[continent][country] || []) {
-        const entry = getStadium(id) || parseId(id)
-        result.push({
-          id,
-          stadiumName: entry.stadiumName,
-          city: entry.city,
-          aliases: entry.aliases || [],
-          continent,
-          country,
-          imageUrl: `/stadiums/${continent}/${country}/${file}`,
-        })
+// Resolves true once the browser has the image (it is then served from cache), false on error/timeout.
+function preloadImage(url) {
+  return new Promise(resolve => {
+    const img = new Image()
+    const timer = setTimeout(() => {
+      console.warn(`Stadium image timed out: ${url}`)
+      img.src = ''
+      resolve(false)
+    }, IMAGE_TIMEOUT_MS)
+    img.onload = () => { clearTimeout(timer); resolve(true) }
+    img.onerror = () => {
+      clearTimeout(timer)
+      console.warn(`Stadium image failed to load: ${url}`)
+      resolve(false)
+    }
+    img.src = url
+  })
+}
+
+// Picks `size` random stadiums and preloads their photos in parallel.
+// A stadium whose photo fails is replaced by the next one from the pool, so the deck
+// can come back shorter than `size` only when the pool runs out.
+export async function prepareStadiumDeck(stadiums, size, onProgress = () => {}) {
+  const pool = shuffle(stadiums)
+  const target = Math.min(size, pool.length)
+  const deck = []
+  let next = 0
+
+  async function worker() {
+    while (deck.length < target && next < pool.length) {
+      const stadium = pool[next++]
+      if (await preloadImage(stadium.imageUrl) && deck.length < target) {
+        deck.push(stadium)
+        onProgress(deck.length, target)
       }
     }
   }
-  return result
-}
 
-export function generateStadiumQuestion(stadiums, usedKeys = new Set()) {
-  const candidates = stadiums.filter(s => !usedKeys.has(s.id))
-  if (!candidates.length) return null
-  return candidates[Math.floor(Math.random() * candidates.length)]
+  await Promise.all(Array.from({ length: target }, worker))
+  return deck
 }
 
 function normalize(str) {

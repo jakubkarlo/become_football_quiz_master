@@ -1,16 +1,21 @@
 import { useState } from 'react'
-import { getContinents, getCountries, buildStadiumList } from '../data/stadiumUtils.js'
+import { getContinents, getCountries, buildStadiumList, CAPACITY_THRESHOLDS } from '../data/stadiumUtils.js'
 import { continentLabel, countryLabel } from '../data/geoLabels.js'
 import './KitSettings.css'
 import './StadiumSettings.css'
+
+function capacityLabel(min) {
+  return min ? `${min / 1000}k+` : 'Wszystkie'
+}
 
 export default function StadiumSettings({ onStart, onBack }) {
   const continents = getContinents()
   const [selContinents, setSelContinents] = useState([])
   const [selCountries, setSelCountries] = useState([])
+  const [minCapacity, setMinCapacity] = useState(0)
 
   const availableCountries = getCountries(selContinents)
-  const stadiumList = buildStadiumList(selContinents, selCountries)
+  const stadiumList = buildStadiumList(selContinents, selCountries, minCapacity)
 
   function toggleContinent(c) {
     setSelContinents(prev => {
@@ -67,6 +72,21 @@ export default function StadiumSettings({ onStart, onBack }) {
             </div>
           </div>
         )}
+
+        <div className="settings-section">
+          <div className="settings-label">POJEMNOŚĆ</div>
+          <div className="chip-row">
+            {CAPACITY_THRESHOLDS.map(min => (
+              <button
+                key={min}
+                className={`chip${minCapacity === min ? ' chip-active' : ''}`}
+                onClick={() => setMinCapacity(min)}
+              >
+                {capacityLabel(min)}
+              </button>
+            ))}
+          </div>
+        </div>
 
         <div className="settings-summary">
           <span className="summary-count">{stadiumList.length}</span>

@@ -98,39 +98,6 @@ function kitsManifestPlugin() {
   }
 }
 
-function buildStadiumsManifest() {
-  const stadiumsDir = path.resolve('./stadiums')
-  if (!fs.existsSync(stadiumsDir)) return {}
-  const isDir = f => fs.statSync(f).isDirectory()
-  const result = {}
-
-  for (const continent of fs.readdirSync(stadiumsDir).filter(f => isDir(path.join(stadiumsDir, f))).sort()) {
-    const continentDir = path.join(stadiumsDir, continent)
-    const countries = {}
-    for (const country of fs.readdirSync(continentDir).filter(f => isDir(path.join(continentDir, f))).sort()) {
-      const files = fs.readdirSync(path.join(continentDir, country))
-        .filter(f => /\.(jpg|jpeg|png|webp)$/i.test(f))
-        .map(f => ({ id: f.replace(/\.[^.]+$/, '').toLowerCase(), file: f }))
-        .sort((a, b) => a.id.localeCompare(b.id))
-      if (files.length) countries[country] = files
-    }
-    if (Object.keys(countries).length) result[continent] = countries
-  }
-  return result
-}
-
-function stadiumsManifestPlugin() {
-  const virtualId = 'virtual:stadiums-manifest'
-  const resolvedId = '\0' + virtualId
-  return {
-    name: 'stadiums-manifest',
-    resolveId(id) { if (id === virtualId) return resolvedId },
-    load(id) {
-      if (id === resolvedId) return `export const stadiumsManifest = ${JSON.stringify(buildStadiumsManifest())}`
-    },
-  }
-}
-
 export default defineConfig({
-  plugins: [react(), kitsManifestPlugin(), stadiumsManifestPlugin()],
+  plugins: [react(), kitsManifestPlugin()],
 })
