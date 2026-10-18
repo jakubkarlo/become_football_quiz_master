@@ -1,7 +1,8 @@
-// Fetches football stadiums from Wikidata and writes src/data/stadiums.json.
+// Fetches football stadiums from Wikidata and writes generated/stadiums.json (not tracked by git).
 // Images are not downloaded — the app hotlinks Wikimedia Commons thumbnails.
 //
-// Usage: node scripts/fetch-stadiums.mjs
+// Usage: npm run fetch:stadiums                       — always re-fetch
+//        node scripts/fetch-stadiums.mjs --if-missing — fetch only when the file is absent (predev/prebuild)
 // Manual corrections (aliases, exclusions) live in src/data/stadiumsOverrides.js, not here,
 // so they survive re-fetching.
 
@@ -11,7 +12,7 @@ import path from 'path'
 const ENDPOINT = 'https://query.wikidata.org/sparql'
 // Wikimedia User-Agent policy: identify the tool and give a contact point.
 const USER_AGENT = 'football-quiz-practice/0.1 (stadium data import; https://www.wikidata.org/wiki/Wikidata:Data_access)'
-const OUTPUT = path.resolve('src/data/stadiums.json')
+const OUTPUT = path.resolve(import.meta.dirname, '../generated/stadiums.json')
 const MIN_CAPACITY = 5000
 
 // key/continent must match the labels in src/data/geoLabels.js
@@ -133,6 +134,7 @@ function toRecord(row, country) {
 }
 
 async function main() {
+  if (process.argv.includes('--if-missing') && fs.existsSync(OUTPUT)) return
   const all = []
   for (const country of COUNTRIES) {
     const rows = await runQuery(buildQuery(country))
@@ -141,6 +143,7 @@ async function main() {
     all.push(...records)
   }
   all.sort((a, b) => b.capacity - a.capacity)
+  fs.mkdirSync(path.dirname(OUTPUT), { recursive: true })
   fs.writeFileSync(OUTPUT, JSON.stringify(all, null, 2) + '\n')
   console.log(`Wrote ${all.length} stadiums to ${path.relative(process.cwd(), OUTPUT)}`)
 }

@@ -4,8 +4,11 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "predev": "node scripts/fetch-stadiums.mjs --if-missing",
     "dev": "vite",
+    "prebuild": "node scripts/fetch-stadiums.mjs --if-missing",
     "build": "vite build",
+    "fetch:stadiums": "node scripts/fetch-stadiums.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },

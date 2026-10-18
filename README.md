@@ -16,17 +16,24 @@ W repo jest tylko lista stadionów w JSON-ie.
 | Plik | Co zawiera | Kto edytuje |
 |---|---|---|
 | `scripts/fetch-stadiums.mjs` | skrypt pobierający dane z Wikidata | programista (konfiguracja krajów) |
-| `src/data/stadiums.json` | wygenerowana lista stadionów | **tylko skrypt**, nie edytować ręcznie |
+| `generated/stadiums.json` | wygenerowana lista stadionów, **nie jest w gicie** | tylko skrypt, nie edytować ręcznie |
 | `src/data/stadiumsOverrides.js` | ręczne poprawki: aliasy, nazwy, wykluczenia | ręcznie |
 
 ### Pobieranie stadionów
 
 ```bash
-node scripts/fetch-stadiums.mjs
+npm run fetch:stadiums
 ```
 
-Skrypt odpytuje Wikidata (SPARQL) i **nadpisuje** `src/data/stadiums.json`. Trwa to kilka sekund.
-Wynik warto przejrzeć w `git diff` przed commitem, bo dane w Wikidata zmieniają się między pobraniami.
+Skrypt odpytuje Wikidata (SPARQL) i **nadpisuje** `generated/stadiums.json`. Trwa to kilka sekund.
+Katalog `generated/` jest w `.gitignore`, więc każdy generuje dane u siebie.
+
+**Nie trzeba tego robić ręcznie przy pierwszym uruchomieniu.** `npm run dev` i `npm run build` (przez `predev`/`prebuild`)
+same pobierają dane, jeśli pliku brakuje, i zostawiają istniejący plik bez zmian.
+Ręczne `npm run fetch:stadiums` jest potrzebne tylko do odświeżenia danych albo po zmianie konfiguracji krajów.
+Build wymaga więc dostępu do `query.wikidata.org`, jeśli `generated/stadiums.json` jeszcze nie istnieje.
+
+Dane w Wikidata zmieniają się między pobraniami, więc po odświeżeniu warto przejrzeć quiz albo sam JSON.
 
 Do quizu trafia stadion, który w Wikidata:
 - leży w kraju z listy `COUNTRIES`,
@@ -57,10 +64,10 @@ const COUNTRIES = [
 ### Ręczne poprawki (`stadiumsOverrides.js`)
 
 Wikidata nie zawsze ma nazwę, której używają kibice, a czasem ma słabe zdjęcie.
-Poprawki zapisujemy w `src/data/stadiumsOverrides.js`, a **nie** w `stadiums.json`.
+Poprawki zapisujemy w `src/data/stadiumsOverrides.js`, a **nie** w `generated/stadiums.json`.
 Dzięki temu nie giną przy ponownym pobraniu. Aplikacja nakłada je na dane z JSON-a przy starcie.
 
-Wpis jest przypisany do id stadionu z Wikidata. To pole `"id"` w `stadiums.json`, np. `Q188699`.
+Wpis jest przypisany do id stadionu z Wikidata. To pole `"id"` w `generated/stadiums.json`, np. `Q188699`.
 
 ```js
 const overrides = {

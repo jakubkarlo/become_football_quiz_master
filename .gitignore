@@ -29,3 +29,6 @@ dist-ssr
 
 # claude-docker secret-scanner storage
 .coding-agents/
+
+# Generated data (npm run fetch:stadiums)
+/generated/
