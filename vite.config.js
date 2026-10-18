@@ -23,60 +23,66 @@ function extractAltClubId(filename) {
   return base.replace(/\s+/g, '_').trim()
 }
 
+// Directory layout: kits/<Country>/<League>/<Season>/<club>_<n>.png (+ optional alt/ subdirectory)
 function buildManifest() {
   const kitsDir = path.resolve('./kits')
   if (!fs.existsSync(kitsDir)) return {}
+  const subdirs = dir => fs.readdirSync(dir).filter(f => fs.statSync(path.join(dir, f)).isDirectory()).sort()
   const result = {}
 
-  for (const season of fs.readdirSync(kitsDir).filter(f => fs.statSync(path.join(kitsDir, f)).isDirectory()).sort()) {
-    result[season] = []
-    const seasonDir = path.join(kitsDir, season)
+  for (const country of subdirs(kitsDir)) {
+    for (const leagueName of subdirs(path.join(kitsDir, country))) {
+      for (const season of subdirs(path.join(kitsDir, country, leagueName))) {
+        const league = `${country} - ${leagueName}`
+        const dir = `${country}/${leagueName}/${season}`
+        const leagueDir = path.join(kitsDir, dir)
+        const allEntries = fs.readdirSync(leagueDir)
 
-    for (const league of fs.readdirSync(seasonDir).filter(f => fs.statSync(path.join(seasonDir, f)).isDirectory()).sort()) {
-      const leagueDir = path.join(seasonDir, league)
-      const allEntries = fs.readdirSync(leagueDir)
+        // Parse main kit files
+        const clubMap = new Map() // id → { prefix, sep, kits: Set }
+        for (const f of allEntries.filter(f => f.toLowerCase().endsWith('.png'))) {
+          const parsed = parseKitFilename(f)
+          if (!parsed) continue
+          const { prefix, id, sep, kitNum } = parsed
+          if (!clubMap.has(id)) clubMap.set(id, { prefix, sep, kits: new Set() })
+          clubMap.get(id).kits.add(kitNum)
+        }
 
-      // Parse main kit files
-      const clubMap = new Map() // id → { prefix, sep, kits: Set }
-      for (const f of allEntries.filter(f => f.toLowerCase().endsWith('.png'))) {
-        const parsed = parseKitFilename(f)
-        if (!parsed) continue
-        const { prefix, id, sep, kitNum } = parsed
-        if (!clubMap.has(id)) clubMap.set(id, { prefix, sep, kits: new Set() })
-        clubMap.get(id).kits.add(kitNum)
-      }
-
-      // Scan alt/ or Alt/ subdirectory
-      const altDirName = allEntries.find(f =>
-        f.toLowerCase() === 'alt' && fs.statSync(path.join(leagueDir, f)).isDirectory()
-      )
-      const altKits = {}
-      if (altDirName) {
-        for (const f of fs.readdirSync(path.join(leagueDir, altDirName)).filter(f => f.toLowerCase().endsWith('.png'))) {
-          const clubId = extractAltClubId(f)
-          if (clubId) {
-            if (!altKits[clubId]) altKits[clubId] = []
-            altKits[clubId].push(`${altDirName}/${f}`)
+        // Scan alt/ or Alt/ subdirectory
+        const altDirName = allEntries.find(f =>
+          f.toLowerCase() === 'alt' && fs.statSync(path.join(leagueDir, f)).isDirectory()
+        )
+        const altKits = {}
+        if (altDirName) {
+          for (const f of fs.readdirSync(path.join(leagueDir, altDirName)).filter(f => f.toLowerCase().endsWith('.png'))) {
+            const clubId = extractAltClubId(f)
+            if (clubId) {
+              if (!altKits[clubId]) altKits[clubId] = []
+              altKits[clubId].push(`${altDirName}/${f}`)
+            }
           }
         }
-      }
 
-      const clubs = [...clubMap.entries()]
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([id, { prefix, sep, kits }]) => {
-          const entry = { id, kits: [...kits].sort((a, b) => a - b) }
-          if (prefix !== id) entry.prefix = prefix
-          if (sep !== '_') entry.sep = sep
-          return entry
+        const clubs = [...clubMap.entries()]
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([id, { prefix, sep, kits }]) => {
+            const entry = { id, kits: [...kits].sort((a, b) => a - b) }
+            if (prefix !== id) entry.prefix = prefix
+            if (sep !== '_') entry.sep = sep
+            return entry
+          })
+
+        if (!result[season]) result[season] = []
+        result[season].push({
+          league,
+          dir,
+          clubs,
+          ...(Object.keys(altKits).length ? { altKits } : {}),
         })
-
-      result[season].push({
-        league,
-        clubs,
-        ...(Object.keys(altKits).length ? { altKits } : {}),
-      })
+      }
     }
   }
+  for (const leagues of Object.values(result)) leagues.sort((a, b) => a.league.localeCompare(b.league))
   return result
 }
 

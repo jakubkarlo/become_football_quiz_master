@@ -18,15 +18,15 @@ export function buildClubList(selectedSeasons = [], selectedLeagues = []) {
 
   for (const season of seasons) {
     const leagueEntries = kitsManifest[season] || []
-    for (const { league, clubs = [], altKits = {} } of leagueEntries) {
+    for (const { league, dir, clubs = [], altKits = {} } of leagueEntries) {
       if (selectedLeagues.length && !selectedLeagues.includes(league)) continue
       for (const { id, prefix, sep = '_', kits = [1, 2, 3] } of clubs) {
         const key = `${season}|${league}|${id}`
         if (seen.has(key)) continue
         seen.add(key)
         const filePrefix = prefix || id
-        const kitBase = `/kits/${season}/${league}/${filePrefix}`
-        const altUrls = (altKits[id] || []).map(f => `/kits/${season}/${league}/${f}`)
+        const kitBase = `/kits/${dir}/${filePrefix}`
+        const altUrls = (altKits[id] || []).map(f => `/kits/${dir}/${f}`)
         result.push({ ...getClub(id), season, league, kitBase, sep, kits, altUrls })
       }
     }
