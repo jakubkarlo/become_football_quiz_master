@@ -1,0 +1,22 @@
+# Large local assets — kits are served from a server volume, the rest is unused by the app
+kits/
+logos/
+stadiums/
+public/kits
+public/stadiums
+
+node_modules/
+dist/
+.git/
+.idea/
+.vscode/
+.devcontainer/
+.claude/
+.coding-agents/
+readmes/
+*.log
+
+# Secrets never go into the build context
+.env
+.env.*
+!.env.example

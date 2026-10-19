@@ -9,7 +9,8 @@
     "build": "vite build",
     "fetch:stadiums": "node scripts/fetch-stadiums.mjs",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "kits:manifest": "node scripts/kits-manifest.mjs"
   },
   "dependencies": {
     "react": "^19.2.6",

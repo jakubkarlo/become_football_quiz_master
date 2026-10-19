@@ -7,6 +7,32 @@ npm install
 npm run dev
 ```
 
+## Koszulki
+
+Grafiki koszulek **nie są w repo ani w obrazie Dockera**. Lokalnie leżą w `kits/`, na produkcji w woluminie na serwerze.
+Aplikacja pobiera `/kits/manifest.json` przy wejściu w zakres koszulek, a obrazki z `/kits/...`.
+
+Układ katalogów:
+
+```
+kits/<kontynent>/<Kraj>/<Liga>/<Sezon>/<klub>_<n>.png     np. kits/europe/England/Premier League/2026_27/arsenal1.png
+kits/nations/<Konfederacja>/<Sezon>/<reprezentacja><n>.png np. kits/nations/UEFA/2025_26/poland1.png
+```
+
+- `<n>` to 1 (domowa), 2 (wyjazdowa) albo 3 (trzecia). Separator `_` przed numerem jest opcjonalny.
+- Koszulki alternatywne leżą w podkatalogu `alt/` (lub `Alt/`) danego sezonu.
+- `<kontynent>` musi mieć polską nazwę w `src/data/geoLabels.js`, a `<Kraj>` (po angielsku) w `COUNTRY_LABELS`.
+- Sezon ma format `2025_26`.
+
+**Manifest** generuje `npm run kits:manifest`, który zapisuje `kits/manifest.json` (`scripts/kits-manifest.mjs`).
+`npm run dev` serwuje manifest generowany na bieżąco, więc lokalnie wystarczy wrzucić pliki i odświeżyć stronę.
+
+**Nazwy drużyn** są w `src/data/clubsDb.js` (kluby) i `src/data/nationsDb.js` (reprezentacje): polska nazwa plus aliasy,
+które zalicza się jako odpowiedź. Klucz to nazwa pliku bez numeru.
+Gdy w nowym sezonie plik tego samego klubu nazywa się inaczej (np. `manchester_city1.png` zamiast `man_city_1.png`),
+dopisz go do `ID_ALIASES` w `clubsDb.js`. Inaczej klub pojawi się w podpowiedziach dwa razy, a wybór z listy zostanie uznany za błąd.
+Drużyna bez wpisu dostaje nazwę z pliku (np. „hull city”).
+
 ## Stadiony
 
 Dane stadionów pochodzą z [Wikidata](https://www.wikidata.org), a zdjęcia z [Wikimedia Commons](https://commons.wikimedia.org).
@@ -150,3 +176,25 @@ Te same pola zasilają podpowiedzi przy wpisywaniu.
 Zdjęcia z Commons są zwykle na licencji CC BY-SA, która wymaga podania autora.
 Dlatego po każdej odpowiedzi quiz pokazuje link do strony zdjęcia (`imageSource`), gdzie widać autora i licencję.
 Nie usuwaj tego linku.
+
+## Deploy (Coolify)
+
+Aplikacja to statyczny build serwowany przez nginx (`Dockerfile`, `nginx/`). Koszulki są montowane z serwera.
+
+1. **Koszulki na serwer** (pierwszy raz i przy każdej zmianie, bez redeployu):
+
+   ```bash
+   npm run kits:manifest
+   rsync -av --delete --exclude 'desktop.ini' --exclude 'config.xml' --exclude 'readme.txt' kits/ user@serwer:/data/football-quiz/kits/
+   ```
+
+   Katalog musi być czytelny dla nginx w kontenerze (np. `chmod -R a+rX /data/football-quiz/kits`).
+   Po wgraniu nowych plików manifest musi zostać wygenerowany ponownie, inaczej aplikacja ich nie zobaczy.
+2. **Coolify:** nowy zasób z repozytorium, Build Pack „Docker Compose”, plik `docker-compose.yml`.
+   Domenę ustaw w Coolify na usłudze `web` (port 80). TLS obsługuje proxy Coolify.
+   Inną ścieżkę koszulek na serwerze ustawisz zmienną `KITS_HOST_DIR`.
+3. **Build** robi `npm ci` i `npm run build`. `generated/` nie jest w gicie, więc `prebuild` przy każdym buildzie
+   pobiera stadiony z Wikidata (kilka minut, wymaga dostępu do `query.wikidata.org`).
+
+Koszulki można później przenieść do bucketu (S3/R2): wystarczy wgrać tam ten sam katalog z `manifest.json`,
+zbudować z `VITE_KITS_BASE_URL=https://...`, dodać ten host do CSP w `nginx/security-headers.conf` i ustawić CORS bucketu na domenę aplikacji.

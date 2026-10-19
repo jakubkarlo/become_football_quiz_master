@@ -5,3 +5,100 @@
   flex-direction: column;
   background: var(--bg);
 }
+
+/* ── Screen shell ─────────────────────────────── */
+.screen {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  max-width: var(--app-width);
+  width: 100%;
+  margin: 0 auto;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+/* Small label used for kickers, field names and counters */
+.lbl {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.lbl-sm { font-size: 11px; }
+.lbl-accent { color: var(--accent); }
+.lbl-accent2 { color: var(--accent2); }
+
+/* ── Buttons ──────────────────────────────────── */
+.btn {
+  white-space: nowrap;
+  flex-shrink: 0;
+  background: var(--btn);
+  color: var(--on-accent);
+  border: none;
+  border-radius: var(--r);
+  padding: 15px 22px;
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter 0.15s, opacity 0.15s;
+}
+
+.btn:hover:not(:disabled) { filter: brightness(1.06); }
+.btn:disabled { opacity: 0.4; cursor: default; }
+.btn-block { width: 100%; }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
+
+.btn-ghost:hover:not(:disabled) { filter: none; background: var(--panel); }
+
+.back-btn {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border: 1px solid var(--line);
+  border-radius: calc(var(--r) * 0.7);
+  background: none;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.back-btn:hover { background: var(--panel); }
+.back-btn-sm { width: 30px; height: 30px; font-size: 15px; }
+
+.btn:focus-visible,
+.btn-ghost:focus-visible,
+.back-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── Desktop type scale ───────────────────────── */
+/* The layout stays a phone-width column; on a large screen only the big headings and numbers shrink,
+   so they do not dominate the narrow column. One place to tune all of them. */
+@media (min-width: 900px) {
+  .menu-title { font-size: 38px; }
+  .mode-label { font-size: 19px; }
+  .scope-head-title,
+  .sheet-title { font-size: 18px; }
+  .start-num { font-size: 24px; }
+  .quiz-question { font-size: 20px; }
+  .fb-title { font-size: 16px; }
+  .summary-ok { font-size: 72px; }
+  .summary-of { font-size: 28px; }
+  .summary-verdict { font-size: 21px; }
+  .btn { font-size: 16px; }
+  .pick-value { font-size: 16px; }
+}

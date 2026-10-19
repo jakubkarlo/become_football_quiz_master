@@ -39,6 +39,10 @@ const db = {
   saopaulofc:       { name: 'São Paulo FC',             aliases: ['Sao Paulo', 'São Paulo', 'SPFC'] },
   sport_recife:     { name: 'Sport Club do Recife',     aliases: ['Sport Recife', 'Sport'] },
   vascodagama:      { name: 'CR Vasco da Gama',         aliases: ['Vasco', 'Vasco da Gama'] },
+  atletico_paranaense: { name: 'Athletico Paranaense',     aliases: ['Athletico', 'Atletico Paranaense', 'Furacão', 'CAP'] },
+  chapecoense:      { name: 'Chapecoense',              aliases: ['Chape', 'AF Chapecoense'] },
+  clube_do_remo:    { name: 'Clube do Remo',            aliases: ['Remo'] },
+  coritiba:         { name: 'Coritiba',                 aliases: ['Coritiba FC', 'Coxa'] },
 
   // France - Ligue 1
   angers:               { name: 'Angers SCO',               aliases: ['Angers'] },
@@ -59,6 +63,8 @@ const db = {
   rennes:               { name: 'Stade Rennais',             aliases: ['Rennes', 'SRFC'] },
   strasbourg:           { name: 'RC Strasbourg',             aliases: ['Strasbourg', 'RCSA'] },
   toulouse:             { name: 'Toulouse FC',               aliases: ['Toulouse', 'TFC'] },
+  le_mans:              { name: 'Le Mans FC',                aliases: ['Le Mans'] },
+  troyes:               { name: 'ES Troyes AC',              aliases: ['Troyes', 'ESTAC'] },
 
   // Italy - Serie A
   atalanta_bergamasca:  { name: 'Atalanta BC',               aliases: ['Atalanta', 'Dea'] },
@@ -81,6 +87,9 @@ const db = {
   sassuolo:             { name: 'US Sassuolo',               aliases: ['Sassuolo'] },
   torino:               { name: 'Torino FC',                 aliases: ['Torino', 'Toro'] },
   udinese:              { name: 'Udinese Calcio',            aliases: ['Udinese'] },
+  frosinone:            { name: 'Frosinone',                 aliases: ['Frosinone Calcio'] },
+  monza:                { name: 'AC Monza',                  aliases: ['Monza'] },
+  venezia:              { name: 'Venezia FC',                aliases: ['Venezia', 'Wenecja'] },
 
   // Netherlands - Eredivisie
   ajax:             { name: 'AFC Ajax',                  aliases: ['Ajax'] },
@@ -101,6 +110,9 @@ const db = {
   utrecht:          { name: 'FC Utrecht',                aliases: ['Utrecht'] },
   volendam:         { name: 'FC Volendam',               aliases: ['Volendam'] },
   zwolle:           { name: 'PEC Zwolle',                aliases: ['Zwolle', 'PEC'] },
+  ado_den_haag:     { name: 'ADO Den Haag',              aliases: ['ADO', 'Den Haag', 'Haga'] },
+  cambuur:          { name: 'SC Cambuur',                aliases: ['Cambuur'] },
+  'willem-ii':      { name: 'Willem II',                 aliases: ['Willem', 'Willem 2', 'Tilburg'] },
 
   // Poland - Ekstraklasa
   'arka gdynia':        { name: 'Arka Gdynia',               aliases: ['Arka'] },
@@ -121,6 +133,9 @@ const db = {
   widzew:               { name: 'Widzew Łódź',               aliases: ['Widzew', 'Widzew Lodz'] },
   'wisla plock':        { name: 'Wisła Płock',               aliases: ['Wisla Plock', 'Wisła'] },
   'zaglebie lubin':     { name: 'Zagłębie Lubin',            aliases: ['Zaglebie Lubin', 'Zagłębie'] },
+  'slask wroclaw':      { name: 'Śląsk Wrocław',             aliases: ['Slask Wroclaw', 'Śląsk', 'Slask'] },
+  wieczysta:            { name: 'Wieczysta Kraków',          aliases: ['Wieczysta', 'Wieczysta Krakow'] },
+  'wisla krakow':       { name: 'Wisła Kraków',              aliases: ['Wisla Krakow', 'Wisła', 'Wisla'] },
 
   // Portugal - Primeira Liga
   alverca:          { name: 'FC Alverca',                aliases: ['Alverca'] },
@@ -183,6 +198,9 @@ const db = {
   union_berlin:        { name: '1. FC Union Berlin',         aliases: ['Union Berlin', 'Union'] },
   werder_bremen:       { name: 'Werder Bremen',              aliases: ['Werder', 'Bremen'] },
   wolfsburg:           { name: 'VfL Wolfsburg',              aliases: ['Wolfsburg'] },
+  elversberg:          { name: 'SV Elversberg',              aliases: ['Elversberg'] },
+  paderborn:           { name: 'SC Paderborn 07',            aliases: ['Paderborn'] },
+  schalke:             { name: 'FC Schalke 04',              aliases: ['Schalke', 'Schalke 04', 'S04'] },
 
   // Premier League
   arsenal:             { name: 'Arsenal',                    aliases: ['Arsenal FC', 'AFC'] },
@@ -191,11 +209,14 @@ const db = {
   brentford:           { name: 'Brentford',                  aliases: ['Brentford FC'] },
   brighton:            { name: 'Brighton',                   aliases: ['Brighton & Hove Albion', 'BHAFC'] },
   burnley:             { name: 'Burnley',                    aliases: ['Burnley FC'] },
+  coventry:            { name: 'Coventry City',              aliases: ['Coventry', 'Sky Blues'] },
   chelsea:             { name: 'Chelsea',                    aliases: ['Chelsea FC', 'CFC', 'The Blues'] },
   crystal_palace:      { name: 'Crystal Palace',             aliases: ['Palace'] },
   everton:             { name: 'Everton',                    aliases: ['Everton FC', 'Toffees'] },
   forest:              { name: 'Nottingham Forest',          aliases: ['Forest', 'Nottingham'] },
   fulham:              { name: 'Fulham',                     aliases: ['Fulham FC'] },
+  hull_city:           { name: 'Hull City',                  aliases: ['Hull', 'Tigers'] },
+  ipswich:             { name: 'Ipswich Town',               aliases: ['Ipswich', 'ITFC'] },
   leeds:               { name: 'Leeds United',               aliases: ['Leeds', 'LUFC'] },
   liverpool:           { name: 'Liverpool',                  aliases: ['Liverpool FC', 'LFC', 'Reds'] },
   man_city:            { name: 'Manchester City',            aliases: ['City', 'Man City', 'MCFC'] },
@@ -205,8 +226,66 @@ const db = {
   tottenham:           { name: 'Tottenham Hotspur',          aliases: ['Tottenham', 'Spurs', 'THFC'] },
   west_ham:            { name: 'West Ham United',            aliases: ['West Ham', 'Hammers', 'WHUFC'] },
   wolves:              { name: 'Wolverhampton Wanderers',    aliases: ['Wolves', 'Wolverhampton'] },
+
+  // Turkey - Süper Lig
+  alanyaspor:          { name: 'Alanyaspor',                 aliases: ['Alanya'] },
+  amedspor:            { name: 'Amedspor',                   aliases: ['Amed', 'Amed SK'] },
+  basaksehir:          { name: 'İstanbul Başakşehir',        aliases: ['Basaksehir', 'Başakşehir', 'Istanbul Basaksehir'] },
+  besiktas:            { name: 'Beşiktaş',                   aliases: ['Besiktas', 'BJK'] },
+  corumfk:             { name: 'Çorum FK',                   aliases: ['Corum', 'Çorum', 'Corum FK'] },
+  erzurumfk:           { name: 'Erzurumspor FK',             aliases: ['Erzurum', 'Erzurumspor', 'Erzurum FK'] },
+  eyupspor:            { name: 'Eyüpspor',                   aliases: ['Eyupspor', 'Eyüp', 'Eyup'] },
+  fenerbahce:          { name: 'Fenerbahçe',                 aliases: ['Fenerbahce', 'Fener'] },
+  galatasaray:         { name: 'Galatasaray',                aliases: ['Gala', 'Cimbom', 'GS'] },
+  gaziantepfk:         { name: 'Gaziantep FK',               aliases: ['Gaziantep'] },
+  genclerbirligi:      { name: 'Gençlerbirliği',             aliases: ['Genclerbirligi', 'Gençler'] },
+  goztepe:             { name: 'Göztepe',                    aliases: ['Goztepe'] },
+  kasimpasa:           { name: 'Kasımpaşa',                  aliases: ['Kasimpasa'] },
+  kocaelispor:         { name: 'Kocaelispor',                aliases: ['Kocaeli'] },
+  konyaspor:           { name: 'Konyaspor',                  aliases: ['Konya'] },
+  rizespor:            { name: 'Çaykur Rizespor',            aliases: ['Rizespor', 'Rize', 'Caykur Rizespor'] },
+  samsunspor:          { name: 'Samsunspor',                 aliases: ['Samsun'] },
+  trabzonspor:         { name: 'Trabzonspor',                aliases: ['Trabzon'] },
 }
 
-export function getClub(id) {
+// Kit files of different seasons name the same club differently (man_city_1.png vs manchester_city1.png).
+// Map every variant to one canonical id, otherwise the club shows up twice and a correct pick is scored as wrong.
+const ID_ALIASES = {
+  manchester_city:   'man_city',
+  leeds_united:      'leeds',
+  newcastle_utd:     'newcastle',
+  nottingham_forest: 'forest',
+  atletico_mineiro:  'atleticomineiro',
+  gremio:            'gremiopa',
+  rb_bragantino:     'rbbragantino',
+  sao_paolo:         'saopaulofc',
+  sc_internacional:  'internacionalpa',
+  vasco_gama:        'vascodagama',
+  vitoria_ec:        'ecvitoria',
+  le_havre:          'havre',
+  marseille:         'olympique_marseille',
+  paris_fc:          'paris',
+  bayer_leverkusen:  'leverkusen',
+  hamburg:           'hsv',
+  monchengladbach:   'borussia_gladbach',
+  redbull:           'rb_leipzig',
+  atalanta:          'atalanta_bergamasca',
+  inter:             'internazionale_milano',
+  az_alkmaar:        'az',
+  nec_nijmegen:      'nec',
+  pec_zwolle:        'zwolle',
+  // Alternative-kit file names
+  bahia_1b:             'bahia',
+  bahia_2b:             'bahia',
+  ado_den_haag_special: 'ado_den_haag',
+  cambuur_veteran:      'cambuur',
+}
+
+export function canonicalClubId(rawId) {
+  return ID_ALIASES[rawId] || rawId
+}
+
+export function getClub(rawId) {
+  const id = canonicalClubId(rawId)
   return db[id] ? { id, ...db[id] } : { id, name: id.replace(/_/g, ' '), aliases: [] }
 }

@@ -4,18 +4,25 @@ import KitSettings from './components/KitSettings'
 import KitQuiz from './components/KitQuiz'
 import StadiumSettings from './components/StadiumSettings'
 import StadiumQuiz from './components/StadiumQuiz'
+import { buildKitPool } from './data/kitUtils.js'
 import './App.css'
 
 export default function App() {
   const [screen, setScreen] = useState('menu')
+  // Brief scopes live here so they survive a round of the quiz
+  const [kitScope, setKitScope] = useState(null) // set by KitSettings once the kit manifest is loaded
+  const [stadiumScope, setStadiumScope] = useState({ continents: ['europe'], countries: [], minCapacity: 0 })
   const [quizClubs, setQuizClubs] = useState([])
-  const [quizKitTypes, setQuizKitTypes] = useState([1, 2, 3, 'alt'])
   const [quizStadiums, setQuizStadiums] = useState([])
 
-  function startKitQuiz(clubs, kitTypes) {
-    setQuizClubs(clubs)
-    setQuizKitTypes(kitTypes)
+  function startKitQuiz() {
+    setQuizClubs(buildKitPool(kitScope))
     setScreen('kit-quiz')
+  }
+
+  function startStadiumQuiz(stadiums) {
+    setQuizStadiums(stadiums)
+    setScreen('stadium-quiz')
   }
 
   function handleMenuSelect(id) {
@@ -23,13 +30,33 @@ export default function App() {
     else if (id === 'stadium-quiz') setScreen('stadium-settings')
   }
 
+  const toMenu = () => setScreen('menu')
+
   return (
     <div className="app">
-      {screen === 'menu'             && <Menu onSelect={handleMenuSelect} />}
-      {screen === 'kit-settings'     && <KitSettings onStart={startKitQuiz} onBack={() => setScreen('menu')} />}
-      {screen === 'kit-quiz'         && <KitQuiz clubs={quizClubs} kitTypes={quizKitTypes} onBack={() => setScreen('kit-settings')} />}
-      {screen === 'stadium-settings' && <StadiumSettings onStart={s => { setQuizStadiums(s); setScreen('stadium-quiz') }} onBack={() => setScreen('menu')} />}
-      {screen === 'stadium-quiz'     && <StadiumQuiz stadiums={quizStadiums} onBack={() => setScreen('stadium-settings')} />}
+      {screen === 'menu' && <Menu onSelect={handleMenuSelect} />}
+      {screen === 'kit-settings' && (
+        <KitSettings scope={kitScope} setScope={setKitScope} onStart={startKitQuiz} onBack={toMenu} />
+      )}
+      {screen === 'kit-quiz' && (
+        <KitQuiz
+          clubs={quizClubs}
+          kind={kitScope.kind}
+          kitTypes={kitScope.kits}
+          onBack={() => setScreen('kit-settings')}
+          onMenu={toMenu}
+        />
+      )}
+      {screen === 'stadium-settings' && (
+        <StadiumSettings scope={stadiumScope} setScope={setStadiumScope} onStart={startStadiumQuiz} onBack={toMenu} />
+      )}
+      {screen === 'stadium-quiz' && (
+        <StadiumQuiz
+          stadiums={quizStadiums}
+          onBack={() => setScreen('stadium-settings')}
+          onMenu={toMenu}
+        />
+      )}
     </div>
   )
 }

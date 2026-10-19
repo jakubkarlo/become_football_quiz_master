@@ -1,49 +1,20 @@
-.stadium-quiz {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  min-height: 100dvh;
-  background: var(--bg);
-  max-width: 480px;
-  width: 100%;
-  margin: 0 auto;
-}
-
-/* ── Stadium image board ───────────────────────── */
-.quiz-stadium-board {
-  margin: 0 16px;
-  border: 1px solid var(--line);
-  position: relative;
-  overflow: hidden;
-  flex-shrink: 0;
-  aspect-ratio: 3 / 2;
-  background: var(--board);
-}
-
+/* ── Stadium photo on the pitch board, scaled to fit like the jersey ── */
 .stadium-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  position: relative; /* above the pitch lines */
   display: block;
+  max-width: 86%;
+  max-height: 80%;
+  object-fit: contain;
+  border-radius: calc(var(--r) * 0.8);
+  box-shadow: 0 10px 24px -12px rgba(0, 0, 0, 0.45);
   animation: fadeIn 0.3s ease;
 }
 
 /* ── Photo attribution (Wikimedia Commons, CC licences) ── */
 .photo-source {
-  display: block;
-  margin-top: 8px;
+  display: inline-block;
+  margin-top: 4px;
   font-size: 11px;
   color: var(--muted);
   text-decoration: underline;
-}
-
-/* ── Deck preparation (photo preloading) ── */
-.deck-loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  padding: 48px 16px;
-  text-align: center;
-  color: var(--muted);
 }

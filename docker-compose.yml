@@ -1,0 +1,24 @@
+# Production deploy for Coolify (Build Pack: Docker Compose).
+# The domain is assigned in Coolify (or via SERVICE_FQDN_WEB_80); Coolify's proxy handles TLS,
+# so no ports are published here.
+#
+# Kits are kept on the server, outside the image and outside git:
+#   KITS_HOST_DIR (default /data/football-quiz/kits) → /srv/kits, served as /kits.
+# Updating kits needs no redeploy — sync the files and regenerate the manifest (see README "Deploy").
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    expose:
+      - "80"
+    environment:
+      - SERVICE_FQDN_WEB_80
+    volumes:
+      - ${KITS_HOST_DIR:-/data/football-quiz/kits}:/srv/kits:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/healthz"]
+      interval: 30s
+      timeout: 3s
+      retries: 3

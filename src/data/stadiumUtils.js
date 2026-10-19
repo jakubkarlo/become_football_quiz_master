@@ -2,6 +2,7 @@
 // created automatically by prebuild). It is split so the main bundle carries none of it:
 // the small index is loaded by the settings screen, continent files only when a quiz starts.
 import { getOverride } from './stadiumsOverrides.js'
+import { prepareDeck, shuffle } from './deck.js'
 
 // Globs instead of plain imports: a missing file yields no loader instead of a build error,
 // and Vite picks up the files once `npm run fetch:stadiums` creates them.
@@ -106,57 +107,9 @@ export async function loadStadiumList(index, selectedContinents = [], selectedCo
   return lists.flat().filter(s => keys.has(s.country) && s.capacity >= minCapacity)
 }
 
-const IMAGE_TIMEOUT_MS = 15000
-
-function shuffle(items) {
-  const a = [...items]
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[a[i], a[j]] = [a[j], a[i]]
-  }
-  return a
-}
-
-// Resolves true once the browser has the image (it is then served from cache), false on error/timeout.
-function preloadImage(url) {
-  return new Promise(resolve => {
-    const img = new Image()
-    const timer = setTimeout(() => {
-      console.warn(`Stadium image timed out: ${url}`)
-      img.src = ''
-      resolve(false)
-    }, IMAGE_TIMEOUT_MS)
-    img.onload = () => { clearTimeout(timer); resolve(true) }
-    img.onerror = () => {
-      clearTimeout(timer)
-      console.warn(`Stadium image failed to load: ${url}`)
-      resolve(false)
-    }
-    img.src = url
-  })
-}
-
-// Picks `size` random stadiums and preloads their photos in parallel.
-// A stadium whose photo fails is replaced by the next one from the pool, so the deck
-// can come back shorter than `size` only when the pool runs out.
-export async function prepareStadiumDeck(stadiums, size, onProgress = () => {}) {
-  const pool = shuffle(stadiums)
-  const target = Math.min(size, pool.length)
-  const deck = []
-  let next = 0
-
-  async function worker() {
-    while (deck.length < target && next < pool.length) {
-      const stadium = pool[next++]
-      if (await preloadImage(stadium.imageUrl) && deck.length < target) {
-        deck.push(stadium)
-        onProgress(deck.length, target)
-      }
-    }
-  }
-
-  await Promise.all(Array.from({ length: target }, worker))
-  return deck
+// Picks `size` random stadiums and preloads their photos (see deck.js).
+export function prepareStadiumDeck(stadiums, size, onProgress) {
+  return prepareDeck(shuffle(stadiums), size, onProgress)
 }
 
 function normalize(str) {

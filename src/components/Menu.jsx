@@ -23,30 +23,23 @@ const IconCrest = () => (
 )
 
 const MODES = [
-  { id: 'kit-quiz',     code: '01', label: 'KOSZULKI', Icon: IconJersey,  active: true },
+  { id: 'kit-quiz',     code: '01', label: 'Koszulki', Icon: IconJersey,  active: true },
   // Greyed out until stadium data is generated (npm run fetch:stadiums)
-  { id: 'stadium-quiz', code: '02', label: 'STADIONY', Icon: IconStadium, active: hasStadiumData },
-  { id: 'coming-soon',  code: '03', label: 'HERBY',    Icon: IconCrest,   active: false },
+  { id: 'stadium-quiz', code: '02', label: 'Stadiony', Icon: IconStadium, active: hasStadiumData },
+  // Hidden until the crest quiz exists
+  { id: 'coming-soon',  code: '03', label: 'Herby',    Icon: IconCrest,   active: false, hidden: true },
 ]
 
 export default function Menu({ onSelect }) {
   return (
-    <div className="menu">
-      <div className="menu-topbar">
-        <span className="menu-dot" />
-        <span className="menu-version">FOOTBALL IQ · v2.5</span>
-      </div>
-
-      <div className="menu-title-block">
-        <div className="menu-pre">// PRE-MATCH</div>
-        <h1 className="menu-title">
-          Briefing<br />
-          <em>Room.</em>
-        </h1>
-      </div>
+    <div className="screen menu">
+      <h1 className="menu-title">
+        Wizualna odprawa<br />
+        <em>przedmeczowa.</em>
+      </h1>
 
       <div className="menu-modes">
-        {MODES.map(m => (
+        {MODES.filter(m => !m.hidden).map(m => (
           <button
             key={m.id}
             className={`mode-card${m.active ? '' : ' mode-disabled'}`}
@@ -57,7 +50,6 @@ export default function Menu({ onSelect }) {
               <m.Icon />
             </div>
             <div className="mode-info">
-              <div className="mode-code">D-{m.code}</div>
               <div className="mode-label">{m.label}</div>
             </div>
             <div className="mode-arrow">{m.active ? '▸' : '○'}</div>
@@ -65,13 +57,9 @@ export default function Menu({ onSelect }) {
         ))}
       </div>
 
-      <div className="menu-scope">
-        <div className="scope-info">
-          <div className="scope-sub">ZAKRES</div>
-          <div className="scope-val">BUNDESLIGA · 2025/26</div>
-        </div>
-        <button className="scope-btn" onClick={() => onSelect('kit-quiz')}>ZMIEŃ</button>
-      </div>
+      <figure className="menu-quote">
+        <blockquote>„To jest młoda Hiszpania, fajna Hiszpania, ale to nie jest Hiszpania, która jest tak doświadczona, jak te poprzednie Hiszpanie.”</blockquote>
+      </figure>
     </div>
   )
 }

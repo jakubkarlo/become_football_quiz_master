@@ -1,26 +1,49 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* Palette derived from two brand colours, as in the "Odprawa" design (dark variant):
+   --main tints all surfaces, --acc is used for actions and highlights. */
 :root {
-  --bg: #F4F1E8;
-  --board: #F9F6EE;
-  --panel: #ECE8DC;
-  --line: #CEC8B6;
-  --ink: #1F2A23;
-  --muted: #7C8A7E;
-  --accent: #2F6B4A;
-  --accent2: #5B8A6B;
-  --green-pale: #D6EBE0;
-  --red: #B03A2A;
-  --red-pale: #F0DDD9;
+  --main: #e2a4fe;
+  --acc: #fdb958;
+  --cream: #F3E9E2;
+
+  --bg: color-mix(in oklab, var(--main), #000 48%);
+  --board: color-mix(in oklab, var(--main), #000 40%);
+  --panel: color-mix(in oklab, var(--main), #000 34%);
+  --line: color-mix(in oklab, var(--bg), var(--cream) 18%);
+  --ink: var(--cream);
+  --muted: color-mix(in oklab, var(--cream), var(--bg) 32%);
+  --accent: var(--acc);
+  --accent2: color-mix(in oklab, var(--acc), var(--bg) 25%);
+  --soft: color-mix(in oklab, var(--bg), var(--cream) 8%);
+  --pitch: #EDE0CC;
+  --pitch-line: var(--main);
+  --btn: #deaa60;
+  --on-accent: #FFFFFF;
+  --ok: #3F7D52;
+  --bad: #B0413E;
+
+  --r: 7px;
+
+  --app-width: 480px;    /* the app is a phone-width column, centred on larger screens */
+  --jersey-width: 260px;
+
+  --font-display: 'Archivo Narrow', system-ui, sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-family: var(--font-body);
   background: var(--bg);
   color: var(--ink);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
 }
+
+button, input { font: inherit; color: inherit; }
+
+input::placeholder { color: inherit; opacity: 0.5; }
 
 #root {
   min-height: 100vh;
