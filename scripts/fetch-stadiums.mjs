@@ -6,7 +6,7 @@
 //
 // Usage: npm run fetch:stadiums                          — re-fetch every continent
 //        npm run fetch:stadiums -- --continent asia     — re-fetch only the listed continent(s), comma-separated
-//        node scripts/fetch-stadiums.mjs --if-missing    — fetch only when the data is absent (prebuild)
+//        node scripts/fetch-stadiums.mjs --if-missing    — fetch only when the data is absent
 // Each continent is saved (its file + index entries) as soon as it is fetched, so a failed run
 // keeps the continents finished before the failure; re-run with --continent for the rest.
 // Manual corrections (aliases, exclusions) live in src/data/stadiumsOverrides.js, not here,
@@ -69,6 +69,11 @@ const COUNTRY_OPTIONS = {
 const SOVEREIGN_STATE = 'Q3624078'
 const FOOTBALL = 'Q2736'
 const FOOTBALL_VENUE = 'Q1154710'
+// Occupants accepted as a club: football club / football team outright (FC Barcelona is the latter),
+// sports and multi-sport clubs (Boca Juniors) only when association football is one of their sports.
+// National teams, seasons and tournaments — also listed as occupants — fall outside these types.
+const FOOTBALL_CLUB_TYPES = ['Q476028', 'Q103229495']
+const SPORTS_CLUB_TYPES = ['Q847017', 'Q13580678']
 const CITY = 'Q515'
 const TOWN = 'Q3957'
 
@@ -115,6 +120,35 @@ GROUP BY ?stadium
 ORDER BY DESC(?capacity)`
 }
 
+// Current occupants of the given stadiums: P466 (occupant) on the stadium or P115 (home venue) on the club.
+// Statements with an end date or deprecated rank are dropped in code. Kept deliberately light —
+// joining the club details here makes Wikidata time out, so they come from buildClubDetailsQuery.
+function buildOccupantsQuery(stadiumIds) {
+  return `
+SELECT ?stadium ?club ?end ?rank WHERE {
+  VALUES ?stadium { ${stadiumIds.map(id => `wd:${id}`).join(' ')} }
+  { ?stadium p:P466 ?st. ?st ps:P466 ?club. }
+  UNION
+  { ?club p:P115 ?st. ?st ps:P115 ?stadium. }
+  ?st wikibase:rank ?rank.
+  OPTIONAL { ?st pq:P582 ?end }
+}`
+}
+
+// Is it a (not dissolved) football club, how well known is it (Wikipedia sitelinks), Polish/English names.
+function buildClubDetailsQuery(clubIds) {
+  return `
+SELECT ?club ?pl ?en ?links ?dissolved ?type ?playsFootball WHERE {
+  VALUES ?club { ${clubIds.map(id => `wd:${id}`).join(' ')} }
+  ?club wikibase:sitelinks ?links.
+  OPTIONAL { ?club wdt:P576 ?dissolved }
+  OPTIONAL { VALUES ?type { ${[...FOOTBALL_CLUB_TYPES, ...SPORTS_CLUB_TYPES].map(id => `wd:${id}`).join(' ')} } ?club wdt:P31 ?type. }
+  OPTIONAL { ?club wdt:P641 wd:${FOOTBALL}. BIND(1 AS ?playsFootball) }
+  OPTIONAL { ?club rdfs:label ?pl. FILTER(LANG(?pl) = "pl") }
+  OPTIONAL { ?club rdfs:label ?en. FILTER(LANG(?en) = "en") }
+}`
+}
+
 // Countries of a region with their Polish/English names.
 function buildCountriesQuery({ countries, wikidataContinent, excludeContinents = [] }) {
   const scope = countries
@@ -133,7 +167,10 @@ GROUP BY ?country`
 // Retries rate limiting (429) and server errors/timeouts (5xx) with backoff; other errors fail at once.
 async function runQuery(query) {
   for (let attempt = 1; ; attempt++) {
-    const res = await fetch(`${ENDPOINT}?query=${encodeURIComponent(query)}`, {
+    // POST: queries with long id lists do not fit in a GET URL (HTTP 431)
+    const res = await fetch(ENDPOINT, {
+      method: 'POST',
+      body: new URLSearchParams({ query }),
       headers: { Accept: 'application/sparql-results+json', 'User-Agent': USER_AGENT },
     })
     if (res.ok) return (await res.json()).results.bindings
@@ -245,6 +282,60 @@ function toRecord(row, country) {
   }
 }
 
+const chunk = (items, size) => Array.from({ length: Math.ceil(items.length / size) }, (_, i) => items.slice(i * size, (i + 1) * size))
+
+const BATCH_SIZE = 150
+// Shared grounds keep several clubs (San Siro, Olimpico). A club is kept only when it has at least this share
+// of the best-known club's sitelinks — drops reserve teams and stray occupants Wikidata lists next to the main club.
+const MAX_CLUBS = 4
+const CLUB_MIN_SHARE = 0.25
+
+// Adds `clubs` (Polish names, at most MAX_CLUBS) and `clubAliases` (English names) to the records in place.
+async function attachClubs(records) {
+  const occupants = new Map() // stadium id → Set of club ids
+  for (const ids of chunk(records.map(r => r.id), BATCH_SIZE)) {
+    for (const row of await runQuery(buildOccupantsQuery(ids))) {
+      if (row.end || row.rank.value.endsWith('DeprecatedRank')) continue
+      const stadium = qidOf(row.stadium.value)
+      if (!occupants.has(stadium)) occupants.set(stadium, new Set())
+      occupants.get(stadium).add(qidOf(row.club.value))
+    }
+  }
+
+  // One row per (club, matching type) — collect the types first, decide per club afterwards
+  const facts = new Map()
+  const clubIds = [...new Set([...occupants.values()].flatMap(set => [...set]))].filter(id => /^Q\d+$/.test(id))
+  for (const ids of chunk(clubIds, BATCH_SIZE * 2)) {
+    for (const row of await runQuery(buildClubDetailsQuery(ids))) {
+      const id = qidOf(row.club.value)
+      if (!facts.has(id)) {
+        facts.set(id, {
+          name: row.pl?.value || row.en?.value, en: row.en?.value, links: Number(row.links.value),
+          dissolved: Boolean(row.dissolved), playsFootball: Boolean(row.playsFootball), types: new Set(),
+        })
+      }
+      if (row.type) facts.get(id).types.add(qidOf(row.type.value))
+    }
+  }
+  const details = new Map()
+  for (const [id, f] of facts) {
+    const isClub = FOOTBALL_CLUB_TYPES.some(t => f.types.has(t))
+      || (f.playsFootball && SPORTS_CLUB_TYPES.some(t => f.types.has(t)))
+    if (isClub && !f.dissolved && f.name) details.set(id, f)
+  }
+
+  for (const record of records) {
+    const byName = new Map() // the same club can exist twice (football section + multi-sport club)
+    for (const c of [...(occupants.get(record.id) || [])].map(id => details.get(id)).filter(Boolean)) {
+      if (!byName.has(c.name) || byName.get(c.name).links < c.links) byName.set(c.name, c)
+    }
+    const clubs = [...byName.values()].sort((a, b) => b.links - a.links)
+    const kept = clubs.slice(0, MAX_CLUBS).filter(c => c.links >= clubs[0].links * CLUB_MIN_SHARE)
+    record.clubs = kept.map(c => c.name)
+    record.clubAliases = kept.map(c => c.en).filter(en => en && !record.clubs.includes(en))
+  }
+}
+
 // --continent europe,asia → only these continents; others keep their existing files.
 function parseContinentArg(known) {
   const i = process.argv.indexOf('--continent')
@@ -315,7 +406,8 @@ async function main() {
     const perCountry = await mapLimit(own, CONCURRENCY, async country => {
       const rows = await runQuery(buildQuery(country))
       const records = rows.map(r => toRecord(r, country)).filter(Boolean)
-      console.log(`${continent}/${country.key}: ${records.length} stadiums`)
+      await attachClubs(records)
+      console.log(`${continent}/${country.key}: ${records.length} stadiums, ${records.filter(r => r.clubs.length).length} with a club`)
       return records
     })
 

@@ -2,9 +2,10 @@
 # The domain is assigned in Coolify (or via SERVICE_FQDN_WEB_80); Coolify's proxy handles TLS,
 # so no ports are published here.
 #
-# Kits are kept on the server, outside the image and outside git:
-#   KITS_HOST_DIR (default /data/football-quiz/kits) → /srv/kits, served as /kits.
-# Updating kits needs no redeploy — sync the files and regenerate the manifest (see README "Deploy").
+# Data is kept on the server, outside the image and outside git — a deploy only builds the app (fast, no Wikidata):
+#   KITS_HOST_DIR          (default /data/football-quiz/kits)          → /srv/kits,         served as /kits
+#   STADIUM_DATA_HOST_DIR  (default /data/football-quiz/stadium-data)  → /srv/stadium-data, served as /stadium-data
+# Updating either needs no redeploy: npm run kits:deploy / npm run stadiums:deploy (see README "Deploy").
 services:
   web:
     build:
@@ -17,6 +18,7 @@ services:
       - SERVICE_FQDN_WEB_80
     volumes:
       - ${KITS_HOST_DIR:-/data/football-quiz/kits}:/srv/kits:ro
+      - ${STADIUM_DATA_HOST_DIR:-/data/football-quiz/stadium-data}:/srv/stadium-data:ro
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/healthz"]
       interval: 30s

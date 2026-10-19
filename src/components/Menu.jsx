@@ -1,4 +1,3 @@
-import { hasStadiumData } from '../data/stadiumUtils.js'
 import './Menu.css'
 
 const IconJersey = () => (
@@ -24,8 +23,7 @@ const IconCrest = () => (
 
 const MODES = [
   { id: 'kit-quiz',     code: '01', label: 'Koszulki', Icon: IconJersey,  active: true },
-  // Greyed out until stadium data is generated (npm run fetch:stadiums)
-  { id: 'stadium-quiz', code: '02', label: 'Stadiony', Icon: IconStadium, active: hasStadiumData },
+  { id: 'stadium-quiz', code: '02', label: 'Stadiony', Icon: IconStadium, active: true },
   // Hidden until the crest quiz exists
   { id: 'coming-soon',  code: '03', label: 'Herby',    Icon: IconCrest,   active: false, hidden: true },
 ]

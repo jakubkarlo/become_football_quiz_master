@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react'
 import { prepareStadiumDeck, getSuggestions, checkAnswer } from '../data/stadiumUtils.js'
-import { continentLabel, countryLabel } from '../data/geoLabels.js'
+import { countryLabel } from '../data/geoLabels.js'
 import { PitchBoard, QuizHeader, Progress, Hints, Feedback, QuizQuestion, AnswerBar, NextButton, QuizSummary } from './QuizParts.jsx'
 import './StadiumQuiz.css'
 
@@ -33,7 +33,7 @@ export default function StadiumQuiz({ stadiums, onBack, onMenu }) {
 
   const suggestions = result
     ? []
-    : getSuggestions(input, stadiums).slice(0, 6).map(s => ({ id: s.id, label: `${s.stadiumName} · ${s.city}`, stadium: s }))
+    : getSuggestions(input, stadiums).slice(0, 6).map(s => ({ id: s.id, label: [s.stadiumName, s.clubs?.[0] || s.city].filter(Boolean).join(' · '), stadium: s }))
 
   function finish(ok, given) {
     const r = { ok, given: given.trim(), answer: question.stadiumName, hints: openHints.length }
@@ -82,9 +82,10 @@ export default function StadiumQuiz({ stadiums, onBack, onMenu }) {
   if (!question) return null
 
   const hints = [
-    { k: 'Kontynent', v: continentLabel(question.continent) },
     { k: 'Kraj', v: question.countryName || countryLabel(question.country) },
-  ]
+    question.city && { k: 'Miasto', v: question.city },
+    question.clubs?.length && { k: question.clubs.length > 1 ? 'Kluby' : 'Klub', v: question.clubs.join(' · ') },
+  ].filter(Boolean)
 
   return (
     <div className="screen">

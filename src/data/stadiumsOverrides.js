@@ -1,4 +1,4 @@
-// Manual corrections applied on top of generated/stadiums/ (scripts/fetch-stadiums.mjs).
+// Manual corrections applied in the app on top of the stadium data (scripts/fetch-stadiums.mjs → /stadium-data).
 // Keyed by Wikidata id, so they survive re-fetching.
 //   aliases  — extra accepted answers, appended to the Wikidata ones
 //   exclude  — drop the stadium from the quiz (bad photo, not really a football ground, ...)

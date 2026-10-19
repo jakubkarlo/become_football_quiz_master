@@ -37,12 +37,14 @@ Drużyna bez wpisu dostaje nazwę z pliku (np. „hull city”).
 
 Dane stadionów pochodzą z [Wikidata](https://www.wikidata.org), a zdjęcia z [Wikimedia Commons](https://commons.wikimedia.org).
 Zdjęć **nie trzymamy w repo**. Quiz wyświetla je bezpośrednio z Wikimedii jako miniatury o szerokości 1280 px.
-W repo jest tylko lista stadionów w JSON-ie.
+**Dane stadionów (JSON) nie są częścią aplikacji ani repo.** Generujesz je u siebie tylko wtedy, gdy chcesz je odświeżyć,
+wgrywasz na serwer (`npm run stadiums:deploy`), a aplikacja pobiera je w trakcie działania spod `/stadium-data/`.
+Deploy aplikacji ich nie dotyka i nie łączy się z Wikidata.
 
 | Plik | Co zawiera | Kto edytuje |
 |---|---|---|
 | `scripts/fetch-stadiums.mjs` | skrypt pobierający dane z Wikidata | programista (konfiguracja krajów) |
-| `generated/stadiums/index.json` | kraje i `[id, pojemność]` każdego stadionu (dla filtrów i licznika w ustawieniach) | tylko skrypt, **nie jest w gicie** |
+| `generated/stadiums/index.json` | kraje i `[id, pojemność]` każdego stadionu (dla filtrów i licznika w ustawieniach) | tylko skrypt, **nie jest w gicie**, na serwer przez `stadiums:deploy` |
 | `generated/stadiums/continents/<kontynent>.json` | pełne dane stadionów, osobny plik na kontynent | tylko skrypt, **nie jest w gicie** |
 | `src/data/stadiumsOverrides.js` | ręczne poprawki: aliasy, nazwy, wykluczenia | ręcznie |
 
@@ -56,10 +58,9 @@ Skrypt odpytuje Wikidata (SPARQL) i pobiera dane **kontynent po kontynencie**.
 Każdy kontynent zapisuje od razu po pobraniu: plik `continents/<kontynent>.json` i swoje wpisy w `index.json`.
 Katalog `generated/` jest w `.gitignore`, więc każdy generuje dane u siebie.
 
-**`npm run dev` niczego nie pobiera.** Bez danych kafelek „STADIONY” w menu jest wyszarzony,
-a po `npm run fetch:stadiums` odblokowuje się sam (w razie czego odśwież stronę).
-`npm run build` (przez `prebuild`) pobiera dane tylko wtedy, gdy ich brakuje, a istniejących nie rusza.
-Build wymaga więc dostępu do `query.wikidata.org`, jeśli `generated/stadiums/index.json` jeszcze nie istnieje.
+**Ani `npm run dev`, ani `npm run build` niczego nie pobierają.** `npm run dev` serwuje `generated/stadiums/` pod `/stadium-data/`.
+Bez danych ekran zakresu stadionów pokaże błąd wczytywania. Wtedy uruchom `npm run fetch:stadiums` i odśwież stronę.
+Na serwer dane trafiają przez `npm run stadiums:deploy` (sekcja „Deploy”).
 
 Dane w Wikidata zmieniają się między pobraniami, więc po odświeżeniu warto przejrzeć quiz albo sam JSON.
 
@@ -69,6 +70,12 @@ Do quizu trafia stadion, który w Wikidata:
 - ma pojemność, współrzędne i zdjęcie,
 - ma pojemność co najmniej `MIN_CAPACITY` (domyślnie 5000),
 - nie ma daty rozbiórki ani zamknięcia.
+
+**Kluby gospodarze** (`clubs`, `clubAliases`) skrypt dociąga osobnymi zapytaniami: właściwość „użytkownik” (P466) stadionu
+albo „obiekt domowy” (P115) klubu, tylko aktualne (bez daty końca) i tylko nierozwiązane kluby piłkarskie.
+Zostaje najwyżej `MAX_CLUBS` (4) klubów, każdy z co najmniej `CLUB_MIN_SHARE` (25%) artykułów w Wikipedii
+najbardziej znanego z nich. To odsiewa rezerwy i przypadkowe wpisy, a zostawia stadiony dzielone (San Siro: Milan i Inter).
+Stadion bez klubu w Wikidata po prostu nie ma podpowiedzi „Klub”.
 
 **Zakres krajów** ustawia się w `REGIONS` w skrypcie. Region to albo jawna lista krajów, albo kontynent z Wikidata.
 Dla kontynentu skrypt sam pobiera wszystkie leżące na nim państwa i odpytuje każde z osobna.
@@ -153,6 +160,9 @@ const overrides = {
     imageSource: 'https://commons.wikimedia.org/wiki/File:Arena_Zabrze.jpg',
   },
 
+  // poprawka klubów gospodarzy (zastępuje listę z Wikidata)
+  Q928642: { clubs: ['Legia Warszawa'] },
+
   // usunięcie stadionu z quizu
   Q3967962: { exclude: true },
 }
@@ -160,16 +170,17 @@ const overrides = {
 
 Zasady:
 - **`aliases` są dopisywane** do aliasów z Wikidata, a nie je zastępują.
-- **Każde inne pole zastępuje** wartość z Wikidata. Dotyczy to `stadiumName`, `city`, `capacity`, `image`, `imageSource` i pozostałych pól.
+- **Każde inne pole zastępuje** wartość z Wikidata. Dotyczy to `stadiumName`, `city`, `clubs`, `capacity`, `image`, `imageSource` i pozostałych pól.
 - **Po zmianie `stadiumName` stara nazwa przestaje być akceptowana**, chyba że jest w aliasach. Jeśli ma dalej działać, dopisz ją do `aliases`.
 - **`exclude: true`** usuwa stadion z quizu. Użyj tego przy złym zdjęciu albo obiekcie, który nie jest stadionem piłkarskim.
 
 ### Jak sprawdzana jest odpowiedź
 
 Odpowiedź jest poprawna, jeśli po znormalizowaniu (małe litery, bez polskich znaków i interpunkcji)
-jest równa nazwie stadionu, miastu albo któremuś aliasowi, lub jednemu słowu z nich.
-Przykład: „Bułgarska”, „bulgarska” i „Poznań” zaliczają Stadion Miejski w Poznaniu.
-Te same pola zasilają podpowiedzi przy wpisywaniu.
+jest równa nazwie stadionu albo któremuś aliasowi, lub jednemu słowu z nich.
+Przykład: „Bułgarska” i „bulgarska” zaliczają Stadion Miejski w Poznaniu.
+**Miasto i kluby nie są zaliczane**, bo są podpowiedziami (Kraj, Miasto, Klub).
+Podpowiedzi przy wpisywaniu szukają też po mieście i klubach, więc „Lech” znajdzie stadion w Poznaniu.
 
 ### Licencje zdjęć
 
@@ -179,22 +190,52 @@ Nie usuwaj tego linku.
 
 ## Deploy (Coolify)
 
-Aplikacja to statyczny build serwowany przez nginx (`Dockerfile`, `nginx/`). Koszulki są montowane z serwera.
+Aplikacja to statyczny build serwowany przez nginx (`Dockerfile`, `nginx/`). Build trwa krótko, bo nie zawiera danych:
+koszulki i dane stadionów leżą w dwóch katalogach na serwerze, montowanych do kontenera, i wgrywa się je osobno, bez redeployu.
 
 1. **Koszulki na serwer** (pierwszy raz i przy każdej zmianie, bez redeployu):
 
+   Jednorazowo załóż katalog na serwerze (`sudo mkdir -p /data/football-quiz/kits` i `chown` na użytkownika SSH),
+   a lokalnie skopiuj `.env.example` do `.env` i ustaw `KITS_DEPLOY_TARGET=user@serwer:/data/football-quiz/kits`.
+   Potem:
+
    ```bash
-   npm run kits:manifest
-   rsync -av --delete --exclude 'desktop.ini' --exclude 'config.xml' --exclude 'readme.txt' kits/ user@serwer:/data/football-quiz/kits/
+   npm run kits:deploy -- --dry-run   # podgląd: co zostanie wysłane, a co usunięte
+   npm run kits:deploy                # manifest + wysyłka tylko zmienionych plików
+   npm run kits:deploy -- --keep      # bez usuwania z serwera plików, których nie ma lokalnie
    ```
 
-   Katalog musi być czytelny dla nginx w kontenerze (np. `chmod -R a+rX /data/football-quiz/kits`).
-   Po wgraniu nowych plików manifest musi zostać wygenerowany ponownie, inaczej aplikacja ich nie zobaczy.
-2. **Coolify:** nowy zasób z repozytorium, Build Pack „Docker Compose”, plik `docker-compose.yml`.
+   Skrypt (`scripts/deploy-kits.mjs`) przebudowuje `kits/manifest.json` i wysyła katalog przez rsync po SSH:
+   najpierw nowe obrazki, potem manifest, na końcu usuwa pliki skasowane lokalnie.
+   Dzięki tej kolejności grający w trakcie wysyłki nigdy nie dostaną manifestu wskazującego brakujący plik.
+   Wymaga `rsync` i `ssh` z dostępem po kluczu (w devcontainerze ich nie ma: `sudo apt install rsync openssh-client` albo uruchom z hosta).
+   Uprawnienia plików są ustawiane tak, żeby nginx w kontenerze mógł je czytać.
+   **Pobranie koszulek z serwera** (np. na nowym komputerze albo żeby sprawdzić, co jest na produkcji):
+
+   ```bash
+   npm run kits:pull -- --dry-run     # podgląd
+   npm run kits:pull                  # pobiera nowe i zmienione pliki, lokalnych nie usuwa
+   npm run kits:pull -- --mirror      # dokładna kopia serwera: usuwa lokalne pliki, których tam nie ma
+   ```
+
+   Plik zmieniony po obu stronach nie zostanie nadpisany starszą wersją (wygrywa nowszy).
+
+2. **Dane stadionów na serwer** (po każdym `npm run fetch:stadiums`, bez redeployu):
+
+   Jednorazowo: `sudo mkdir -p /data/football-quiz/stadium-data` (+ `chown`) i `STADIUMS_DEPLOY_TARGET` w `.env`.
+
+   ```bash
+   npm run stadiums:deploy -- --dry-run
+   npm run stadiums:deploy
+   ```
+
+   Najpierw idą pliki kontynentów, potem `index.json`, na końcu usuwane są nieaktualne pliki.
+   Skrypt odmówi wysłania pustego indeksu.
+
+3. **Coolify:** nowy zasób z repozytorium, Build Pack „Docker Compose”, plik `docker-compose.yml`.
    Domenę ustaw w Coolify na usłudze `web` (port 80). TLS obsługuje proxy Coolify.
-   Inną ścieżkę koszulek na serwerze ustawisz zmienną `KITS_HOST_DIR`.
-3. **Build** robi `npm ci` i `npm run build`. `generated/` nie jest w gicie, więc `prebuild` przy każdym buildzie
-   pobiera stadiony z Wikidata (kilka minut, wymaga dostępu do `query.wikidata.org`).
+   Inne ścieżki na serwerze ustawisz zmiennymi `KITS_HOST_DIR` i `STADIUM_DATA_HOST_DIR`.
+   Build robi tylko `npm ci` i `npm run build`, bez pobierania danych.
 
 Koszulki można później przenieść do bucketu (S3/R2): wystarczy wgrać tam ten sam katalog z `manifest.json`,
 zbudować z `VITE_KITS_BASE_URL=https://...`, dodać ten host do CSP w `nginx/security-headers.conf` i ustawić CORS bucketu na domenę aplikacji.

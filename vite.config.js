@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import fs from 'fs'
 import path from 'path'
 import { buildManifest } from './scripts/kits-manifest.mjs'
 
@@ -19,6 +20,30 @@ function kitsManifestDevPlugin() {
   }
 }
 
+// Dev only: serve generated/stadiums/ (from `npm run fetch:stadiums`) as /stadium-data/, like nginx does in production.
+function stadiumDataDevPlugin() {
+  const root = path.resolve('./generated/stadiums')
+  return {
+    name: 'stadium-data-dev',
+    apply: 'serve',
+    configureServer(server) {
+      server.middlewares.use('/stadium-data', (req, res) => {
+        const rel = decodeURIComponent(req.url.split('?')[0]).replace(/^\/+/, '')
+        const file = path.resolve(root, rel)
+        // Only JSON files inside the data directory
+        if (!file.startsWith(root + path.sep) || !file.endsWith('.json') || !fs.existsSync(file)) {
+          res.statusCode = 404
+          res.end('Not found — run `npm run fetch:stadiums`')
+          return
+        }
+        res.setHeader('Content-Type', 'application/json')
+        res.setHeader('Cache-Control', 'no-store')
+        fs.createReadStream(file).pipe(res)
+      })
+    },
+  }
+}
+
 export default defineConfig({
-  plugins: [react(), kitsManifestDevPlugin()],
+  plugins: [react(), kitsManifestDevPlugin(), stadiumDataDevPlugin()],
 })

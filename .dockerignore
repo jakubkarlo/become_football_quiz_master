@@ -4,6 +4,7 @@ logos/
 stadiums/
 public/kits
 public/stadiums
+generated/
 
 node_modules/
 dist/

@@ -32,3 +32,8 @@ dist-ssr
 
 # Generated data (npm run fetch:stadiums)
 /generated/
+
+# Local configuration (deploy target etc.) — never committed
+.env
+.env.*
+!.env.example
