@@ -161,7 +161,7 @@
 .start-num-empty { color: var(--muted); }
 
 /* ── Bottom sheet ─────────────────────────────── */
-/* Positioned against its .screen (one viewport tall on a phone, the frame on desktop) */
+/* Positioned against its .screen, which is exactly one viewport tall */
 .sheet {
   position: absolute;
   inset: 0;

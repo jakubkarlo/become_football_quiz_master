@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { currentTheme, setTheme } from '../theme.js'
+import { randomQuote } from '../data/quotes.js'
 import './Menu.css'
 
 const IconJersey = () => (
@@ -89,9 +90,20 @@ export default function Menu({ onSelect }) {
         ))}
       </div>
 
-      <figure className="menu-quote">
-        <blockquote>„To jest młoda Hiszpania, fajna Hiszpania, ale to nie jest Hiszpania, która jest tak doświadczona, jak te poprzednie Hiszpanie.”</blockquote>
-      </figure>
+      <MenuQuote />
     </div>
+  )
+}
+
+function MenuQuote() {
+  // Drawn once per mount, so it changes on every return to the menu but not on re-render
+  const [quote] = useState(randomQuote)
+  if (!quote) return null
+
+  return (
+    <figure className="menu-quote">
+      <blockquote>„{quote.text}”</blockquote>
+      {quote.author && <figcaption className="lbl">{quote.author}</figcaption>}
+    </figure>
   )
 }
