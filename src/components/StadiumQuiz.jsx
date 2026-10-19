@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react'
 import { prepareStadiumDeck, getSuggestions, checkAnswer } from '../data/stadiumUtils.js'
 import { countryLabel } from '../data/geoLabels.js'
 import { PitchBoard, QuizHeader, Progress, Hints, Feedback, QuizQuestion, AnswerBar, NextButton, QuizSummary } from './QuizParts.jsx'
+import { useViewportLock } from '../hooks/useViewportLock.js'
 import './StadiumQuiz.css'
 
 const ROUND_SIZE = 10
@@ -19,6 +20,7 @@ export default function StadiumQuiz({ stadiums, onBack, onMenu }) {
   const [result, setResult] = useState(null)
   const [results, setResults] = useState([])
   const [done, setDone] = useState(false)
+  useViewportLock()
 
   const TOTAL = deck?.length ?? 0
   const question = deck?.[round - 1]
@@ -88,24 +90,9 @@ export default function StadiumQuiz({ stadiums, onBack, onMenu }) {
   ].filter(Boolean)
 
   return (
-    <div className="screen">
+    <div className="screen screen-quiz">
       <QuizHeader round={round} total={TOTAL} onBack={onBack} />
       <Progress total={TOTAL} current={round - 1} results={results} />
-
-      <div className="quiz-stage">
-        <PitchBoard>
-          <img key={question.id} src={question.imageUrl} alt="Stadion" className="stadium-img" />
-        </PitchBoard>
-        <Feedback result={result}>
-          {isSafeUrl(question.imageSource) && (
-            <a className="photo-source" href={question.imageSource} target="_blank" rel="noopener noreferrer">
-              Zdjęcie: Wikimedia Commons (autor i licencja)
-            </a>
-          )}
-        </Feedback>
-      </div>
-
-      <Hints items={hints} open={openHints} revealAll={!!result} onOpen={i => setOpenHints(h => [...h, i])} />
 
       <div className="quiz-answer">
         <QuizQuestion lead="Jaki to" accent="stadion?" />
@@ -121,6 +108,21 @@ export default function StadiumQuiz({ stadiums, onBack, onMenu }) {
             placeholder="Nazwa lub miasto…"
           />
         )}
+      </div>
+
+      <Hints items={hints} open={openHints} revealAll={!!result} onOpen={i => setOpenHints(h => [...h, i])} />
+
+      <div className="quiz-stage">
+        <PitchBoard>
+          <img key={question.id} src={question.imageUrl} alt="Stadion" className="stadium-img" />
+        </PitchBoard>
+        <Feedback result={result}>
+          {isSafeUrl(question.imageSource) && (
+            <a className="photo-source" href={question.imageSource} target="_blank" rel="noopener noreferrer">
+              Zdjęcie: Wikimedia Commons (autor i licencja)
+            </a>
+          )}
+        </Feedback>
       </div>
     </div>
   )

@@ -20,6 +20,14 @@
   color: var(--ink);
 }
 
+/* Question screen: exactly the visible viewport, nothing to scroll — the board absorbs the keyboard */
+.screen-quiz {
+  height: 100vh;
+  height: var(--app-height, 100dvh);
+  min-height: 0;
+  overflow: hidden;
+}
+
 /* Small label used for kickers, field names and counters */
 .lbl {
   font-family: var(--font-body);

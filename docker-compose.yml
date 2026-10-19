@@ -16,6 +16,9 @@ services:
       - "80"
     environment:
       - SERVICE_FQDN_WEB_80
+      # Basic auth for the whole site (set in Coolify as secrets). Required — the container won't start without them.
+      - BASIC_AUTH_USER=${BASIC_AUTH_USER:?set BASIC_AUTH_USER}
+      - BASIC_AUTH_PASSWORD=${BASIC_AUTH_PASSWORD:?set BASIC_AUTH_PASSWORD}
     volumes:
       - ${KITS_HOST_DIR:-/data/football-quiz/kits}:/srv/kits:ro
       - ${STADIUM_DATA_HOST_DIR:-/data/football-quiz/stadium-data}:/srv/stadium-data:ro

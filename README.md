@@ -236,6 +236,9 @@ koszulki i dane stadionów leżą w dwóch katalogach na serwerze, montowanych d
    Domenę ustaw w Coolify na usłudze `web` (port 80). TLS obsługuje proxy Coolify.
    Inne ścieżki na serwerze ustawisz zmiennymi `KITS_HOST_DIR` i `STADIUM_DATA_HOST_DIR`.
    Build robi tylko `npm ci` i `npm run build`, bez pobierania danych.
+   **Basic auth:** cała strona jest chroniona hasłem. W Coolify ustaw zmienne `BASIC_AUTH_USER` i `BASIC_AUTH_PASSWORD`
+   (zaznacz jako sekret). Bez nich kontener nie wystartuje. Przy starcie `nginx/basic-auth.sh` zapisuje z nich plik htpasswd (bcrypt).
+   Zmiana hasła = zmiana zmiennej i restart, bez przebudowy. `/healthz` działa bez hasła (healthcheck).
 
 Koszulki można później przenieść do bucketu (S3/R2): wystarczy wgrać tam ten sam katalog z `manifest.json`,
 zbudować z `VITE_KITS_BASE_URL=https://...`, dodać ten host do CSP w `nginx/security-headers.conf` i ustawić CORS bucketu na domenę aplikacji.

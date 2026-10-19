@@ -3,8 +3,8 @@
 .jersey-frame {
   position: relative;
   display: inline-block;
-  width: 64%;
-  max-width: var(--jersey-width);
+  /* Kit images are square: fit both the board's width and its height (shrinks with the keyboard open) */
+  width: min(64cqw, 86cqh, var(--jersey-width));
   line-height: 0;
 }
 

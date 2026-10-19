@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import { prepareKitDeck, getSuggestions, checkAnswer, leagueName } from '../data/kitUtils.js'
 import { PitchBoard, QuizHeader, Progress, Hints, Feedback, QuizQuestion, AnswerBar, NextButton, QuizSummary } from './QuizParts.jsx'
+import { useViewportLock } from '../hooks/useViewportLock.js'
 import './KitQuiz.css'
 
 const ROUND_SIZE = 10
@@ -26,6 +27,7 @@ export default function KitQuiz({ clubs, kind = 'club', kitTypes = [1, 2, 3], on
   const [result, setResult] = useState(null)
   const [results, setResults] = useState([])
   const [done, setDone] = useState(false)
+  useViewportLock()
 
   const TOTAL = deck?.length ?? 0
   const question = deck?.[round - 1]
@@ -88,21 +90,9 @@ export default function KitQuiz({ clubs, kind = 'club', kitTypes = [1, 2, 3], on
   if (!question) return null
 
   return (
-    <div className="screen">
+    <div className="screen screen-quiz">
       <QuizHeader round={round} total={TOTAL} onBack={onBack} />
       <Progress total={TOTAL} current={round - 1} results={results} />
-
-      <div className="quiz-stage">
-        <PitchBoard>
-          <div className="jersey-frame">
-            <img key={question.key} src={question.imageUrl} alt="Koszulka" className="jersey-img" />
-            {!result && <div className="logo-mask">?</div>}
-          </div>
-        </PitchBoard>
-        <Feedback result={result} />
-      </div>
-
-      <Hints items={hintsFor(question)} open={openHints} revealAll={!!result} onOpen={i => setOpenHints(h => [...h, i])} />
 
       <div className="quiz-answer">
         <QuizQuestion lead={isNation ? 'Jakiej reprezentacji' : 'Jakiego klubu'} accent="to koszulka?" />
@@ -118,6 +108,18 @@ export default function KitQuiz({ clubs, kind = 'club', kitTypes = [1, 2, 3], on
             placeholder={isNation ? 'Wpisz reprezentację…' : 'Wpisz klub…'}
           />
         )}
+      </div>
+
+      <Hints items={hintsFor(question)} open={openHints} revealAll={!!result} onOpen={i => setOpenHints(h => [...h, i])} />
+
+      <div className="quiz-stage">
+        <PitchBoard>
+          <div className="jersey-frame">
+            <img key={question.key} src={question.imageUrl} alt="Koszulka" className="jersey-img" />
+            {!result && <div className="logo-mask">?</div>}
+          </div>
+        </PitchBoard>
+        <Feedback result={result} />
       </div>
     </div>
   )

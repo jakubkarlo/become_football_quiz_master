@@ -2,8 +2,8 @@
 .stadium-img {
   position: relative; /* above the pitch lines */
   display: block;
-  max-width: 86%;
-  max-height: 80%;
+  max-width: 86cqw;
+  max-height: 80cqh;
   object-fit: contain;
   border-radius: calc(var(--r) * 0.8);
   box-shadow: 0 10px 24px -12px rgba(0, 0, 0, 0.45);

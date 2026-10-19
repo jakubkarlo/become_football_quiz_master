@@ -38,6 +38,8 @@
 /* ── Board area (question image) ──────────────── */
 .pitch-board {
   flex: 1;
+  min-height: 0;
+  container-type: size; /* lets the image size itself to the board (cqw/cqh) */
   margin: 0 16px;
   position: relative;
   overflow: hidden;
@@ -62,7 +64,8 @@
 
 .quiz-stage {
   flex: 1;
-  min-height: 240px;
+  min-height: 0;
+  margin-bottom: calc(16px + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
   position: relative;
@@ -132,7 +135,7 @@
 .fb-given { color: var(--muted); }
 
 /* ── Hints ────────────────────────────────────── */
-.hints { padding: 14px 16px 0; }
+.hints { padding: 0 16px 12px; }
 
 .hints-head {
   display: flex;
@@ -195,7 +198,7 @@
 .hint-open .hint-v { color: var(--ink); }
 
 /* ── Question + answer ────────────────────────── */
-.quiz-answer { padding: 16px 16px 26px; }
+.quiz-answer { padding: 0 16px 12px; }
 
 .quiz-question {
   font-family: var(--font-display);
@@ -214,7 +217,7 @@
 .answer-bar {
   display: flex;
   gap: 8px;
-  margin-top: 14px;
+  margin-top: 10px;
 }
 
 .answer-wrap {
@@ -229,7 +232,7 @@
   background: var(--board);
   border: 1px solid var(--accent);
   border-radius: var(--r);
-  font-size: 15px;
+  font-size: 16px; /* below 16px iOS zooms the page on focus */
   color: var(--ink);
   caret-color: var(--accent);
   outline: none;
@@ -240,11 +243,11 @@
 
 .answer-btn { padding: 0 22px; }
 
-.next-btn { margin-top: 14px; }
+.next-btn { margin-top: 10px; }
 
 .suggestions {
   position: absolute;
-  bottom: calc(100% + 6px);
+  top: calc(100% + 6px);
   left: 0;
   right: 0;
   z-index: 10;
