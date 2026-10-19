@@ -7,25 +7,20 @@
 }
 
 /* ── Screen shell ─────────────────────────────── */
+/* Every screen is exactly one viewport tall — nothing to scroll, actions always in view.
+   --app-height is set on the question screen (useViewportLock) so it also tracks the keyboard. */
 .screen {
   position: relative;
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-  min-height: 100dvh;
+  height: 100vh;
+  height: var(--app-height, 100dvh);
+  overflow: hidden;
   max-width: var(--app-width);
   width: 100%;
   margin: 0 auto;
   background: var(--bg);
   color: var(--ink);
-}
-
-/* Question screen: exactly the visible viewport, nothing to scroll — the board absorbs the keyboard */
-.screen-quiz {
-  height: 100vh;
-  height: var(--app-height, 100dvh);
-  min-height: 0;
-  overflow: hidden;
 }
 
 /* Small label used for kickers, field names and counters */
@@ -91,22 +86,4 @@
 .back-btn:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
-}
-
-/* ── Desktop type scale ───────────────────────── */
-/* The layout stays a phone-width column; on a large screen only the big headings and numbers shrink,
-   so they do not dominate the narrow column. One place to tune all of them. */
-@media (min-width: 900px) {
-  .menu-title { font-size: 38px; }
-  .mode-label { font-size: 19px; }
-  .scope-head-title,
-  .sheet-title { font-size: 18px; }
-  .start-num { font-size: 24px; }
-  .quiz-question { font-size: 20px; }
-  .fb-title { font-size: 16px; }
-  .summary-ok { font-size: 72px; }
-  .summary-of { font-size: 28px; }
-  .summary-verdict { font-size: 21px; }
-  .btn { font-size: 16px; }
-  .pick-value { font-size: 16px; }
 }

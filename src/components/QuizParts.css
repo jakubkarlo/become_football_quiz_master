@@ -123,9 +123,8 @@
   color: var(--fb);
 }
 
-/* Correct/incorrect greens and reds are too dark on the dark board — lift them for text */
-.fb-ok .fb-title { color: color-mix(in oklab, var(--ok), var(--cream) 35%); }
-.fb-bad .fb-title { color: color-mix(in oklab, var(--bad), var(--cream) 30%); }
+.fb-ok .fb-title { color: var(--ok-ink); }
+.fb-bad .fb-title { color: var(--bad-ink); }
 
 .fb-detail {
   font-size: 13px;
@@ -331,7 +330,7 @@
 }
 
 .summary-actions {
-  padding: 16px 20px 30px;
+  padding: 16px 20px calc(clamp(12px, 3vh, 30px) + env(safe-area-inset-bottom));
   border-top: 1px solid var(--line);
   display: flex;
   gap: 10px;

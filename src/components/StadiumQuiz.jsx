@@ -90,7 +90,7 @@ export default function StadiumQuiz({ stadiums, onBack, onMenu }) {
   ].filter(Boolean)
 
   return (
-    <div className="screen screen-quiz">
+    <div className="screen">
       <QuizHeader round={round} total={TOTAL} onBack={onBack} />
       <Progress total={TOTAL} current={round - 1} results={results} />
 

@@ -213,10 +213,10 @@ export function checkAnswer(input, club) {
 // seasons === null means "the newest season available for the chosen competitions".
 
 export const KIT_TYPE_OPTIONS = [
-  [1, 'Dom.'],
-  [2, 'Wyj.'],
-  [3, '3.'],
-  ['alt', 'Alt.'],
+  [1, 'Dom'],
+  [2, 'Wyjazd'],
+  [3, 'Trzecia'],
+  ['alt', 'Alt'],
 ]
 
 export const TEAM_KIND_OPTIONS = [

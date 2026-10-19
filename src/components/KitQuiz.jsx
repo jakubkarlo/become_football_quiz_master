@@ -90,7 +90,7 @@ export default function KitQuiz({ clubs, kind = 'club', kitTypes = [1, 2, 3], on
   if (!question) return null
 
   return (
-    <div className="screen screen-quiz">
+    <div className="screen">
       <QuizHeader round={round} total={TOTAL} onBack={onBack} />
       <Progress total={TOTAL} current={round - 1} results={results} />
 

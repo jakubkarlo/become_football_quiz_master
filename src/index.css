@@ -22,6 +22,9 @@
   --on-accent: #FFFFFF;
   --ok: #3F7D52;
   --bad: #B0413E;
+  /* Correct/incorrect greens and reds are too dark on the dark board — lifted for text */
+  --ok-ink: color-mix(in oklab, var(--ok), var(--cream) 35%);
+  --bad-ink: color-mix(in oklab, var(--bad), var(--cream) 30%);
 
   --r: 7px;
 
@@ -31,6 +34,32 @@
   --font-display: 'Archivo Narrow', system-ui, sans-serif;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
+
+  color-scheme: dark;
+}
+
+/* Light variant: cream leads, plum carries the accents. data-theme is set by src/theme.js.
+   Every derived token is restated — on :root they would otherwise be recomputed from the light --bg. */
+:root[data-theme="light"] {
+  --plum: #6E2A57;
+
+  --bg: var(--cream);
+  --board: color-mix(in oklab, var(--cream), #FFF 55%);
+  --panel: color-mix(in oklab, var(--cream), var(--main) 14%);
+  --line: color-mix(in oklab, var(--cream), var(--plum) 22%);
+  --ink: #2E1A33;
+  --muted: color-mix(in oklab, var(--ink), var(--cream) 40%);
+  --accent: var(--plum);
+  --accent2: var(--plum);
+  --soft: color-mix(in oklab, var(--cream), var(--main) 22%);
+  --pitch: color-mix(in oklab, var(--cream), #FFF 60%);
+  --pitch-line: color-mix(in oklab, var(--main), var(--plum) 45%);
+  --btn: var(--plum);
+  --on-accent: #FFFFFF;
+  --ok-ink: var(--ok);
+  --bad-ink: var(--bad);
+
+  color-scheme: light;
 }
 
 body {

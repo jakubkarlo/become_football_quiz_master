@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { currentTheme, setTheme } from '../theme.js'
 import './Menu.css'
 
 const IconJersey = () => (
@@ -21,6 +23,35 @@ const IconCrest = () => (
   </svg>
 )
 
+const IconSun = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2 V4 M12 20 V22 M2 12 H4 M20 12 H22 M4.9 4.9 L6.3 6.3 M17.7 17.7 L19.1 19.1 M4.9 19.1 L6.3 17.7 M17.7 6.3 L19.1 4.9" />
+  </svg>
+)
+
+const IconMoon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
+    <path d="M20 14.5 A8 8 0 1 1 9.5 4 A6.5 6.5 0 0 0 20 14.5 Z" />
+  </svg>
+)
+
+function ThemeToggle() {
+  const [theme, setThemeState] = useState(currentTheme)
+  const next = theme === 'light' ? 'dark' : 'light'
+
+  function toggle() {
+    setTheme(next)
+    setThemeState(next)
+  }
+
+  return (
+    <button className="back-btn theme-toggle" onClick={toggle} aria-label={next === 'light' ? 'Włącz jasny motyw' : 'Włącz ciemny motyw'}>
+      {next === 'light' ? <IconSun /> : <IconMoon />}
+    </button>
+  )
+}
+
 const MODES = [
   { id: 'kit-quiz',     code: '01', label: 'Koszulki', Icon: IconJersey,  active: true },
   { id: 'stadium-quiz', code: '02', label: 'Stadiony', Icon: IconStadium, active: true },
@@ -31,6 +62,9 @@ const MODES = [
 export default function Menu({ onSelect }) {
   return (
     <div className="screen menu">
+      <div className="menu-top">
+        <ThemeToggle />
+      </div>
       <h1 className="menu-title">
         Wizualna odprawa<br />
         <em>przedmeczowa.</em>

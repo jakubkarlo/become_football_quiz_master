@@ -1,6 +1,7 @@
 /* ── Header ───────────────────────────────────── */
 .scope-head {
-  padding: 16px 20px;
+  flex-shrink: 0;
+  padding: clamp(10px, 2vh, 16px) 20px;
   display: flex;
   align-items: center;
   gap: 14px;
@@ -14,12 +15,16 @@
   margin-top: 2px;
 }
 
+/* Spacing follows the viewport height so the whole form fits one screen; it scrolls on its own
+   (never pushing the Start bar out) only when even the tightest spacing is not enough */
 .scope-body {
   flex: 1;
-  padding: 24px 20px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: clamp(12px, 3vh, 24px) 20px;
   display: flex;
   flex-direction: column;
-  gap: 26px;
+  gap: clamp(12px, 3vh, 26px);
 }
 
 .scope-status {
@@ -34,7 +39,7 @@
 .field {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: clamp(6px, 1.2vh, 10px);
 }
 
 .field-head {
@@ -51,7 +56,7 @@
 }
 
 .toggle-cell {
-  padding: 12px 4px;
+  padding: clamp(8px, 1.5vh, 12px) 4px;
   border: none;
   background: transparent;
   color: var(--ink);
@@ -83,7 +88,7 @@
   align-items: center;
   gap: 12px;
   width: 100%;
-  padding: 14px 16px;
+  padding: clamp(9px, 1.7vh, 14px) 16px;
   border: 1px solid var(--line);
   border-radius: var(--r);
   background: var(--board);
@@ -134,7 +139,8 @@
 
 /* ── Start bar ────────────────────────────────── */
 .start-bar {
-  padding: 16px 20px 30px;
+  flex-shrink: 0;
+  padding: clamp(10px, 2vh, 16px) 20px calc(clamp(12px, 3vh, 30px) + env(safe-area-inset-bottom));
   border-top: 1px solid var(--line);
   display: flex;
   align-items: center;
@@ -155,11 +161,10 @@
 .start-num-empty { color: var(--muted); }
 
 /* ── Bottom sheet ─────────────────────────────── */
+/* Positioned against its .screen (one viewport tall on a phone, the frame on desktop) */
 .sheet {
-  position: fixed;
+  position: absolute;
   inset: 0;
-  max-width: var(--app-width);
-  margin: 0 auto;
   z-index: 50;
   pointer-events: none;
 }
@@ -181,7 +186,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  top: 120px;
+  top: clamp(40px, 12vh, 120px);
   display: flex;
   flex-direction: column;
   background: var(--bg);
@@ -297,6 +302,6 @@
 }
 
 .sheet-foot {
-  padding: 12px 20px 30px;
+  padding: 12px 20px calc(16px + env(safe-area-inset-bottom));
   border-top: 1px solid var(--line);
 }

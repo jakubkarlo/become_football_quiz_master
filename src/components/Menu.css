@@ -1,5 +1,16 @@
+/* Own row above the title, so the toggle can never overlap the heading */
+.menu-top {
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px 16px 0;
+}
+
+.theme-toggle { color: var(--muted); }
+
+.theme-toggle:hover { color: var(--accent); }
+
 .menu-title {
-  padding: 36px 24px 0;
+  padding: 12px 24px 0;
   font-family: var(--font-display);
   font-size: clamp(44px, 13vw, 50px);
   font-weight: 800;
@@ -13,7 +24,8 @@
 }
 
 .menu-modes {
-  padding: 36px 24px 0;
+  min-height: 0;
+  padding: clamp(16px, 4vh, 36px) 24px 0;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -85,7 +97,7 @@
 /* ── Coach quote ──────────────────────────────── */
 .menu-quote {
   position: relative;
-  margin: 36px 24px 34px;
+  margin: clamp(16px, 4vh, 36px) 24px calc(clamp(16px, 4vh, 34px) + env(safe-area-inset-bottom));
   padding-top: 22px;
   border-top: 1px solid var(--line);
 }
