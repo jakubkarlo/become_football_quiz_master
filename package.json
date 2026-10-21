@@ -12,7 +12,8 @@
     "kits:manifest": "node scripts/kits-manifest.mjs",
     "kits:deploy": "node --env-file-if-exists=.env scripts/deploy-kits.mjs",
     "kits:pull": "node --env-file-if-exists=.env scripts/pull-kits.mjs",
-    "stadiums:deploy": "node --env-file-if-exists=.env scripts/deploy-stadiums.mjs"
+    "stadiums:deploy": "node --env-file-if-exists=.env scripts/deploy-stadiums.mjs",
+    "stadiums:pull": "node --env-file-if-exists=.env scripts/pull-stadiums.mjs"
   },
   "dependencies": {
     "react": "^19.2.6",

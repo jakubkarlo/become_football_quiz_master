@@ -199,7 +199,7 @@ Dlatego są trzy niezależne rodzaje wdrożeń:
 | Co się zmieniło | Jak wdrożyć | Redeploy aplikacji? |
 |---|---|---|
 | Kod aplikacji, tłumaczenia (`src/i18n/`), `clubsDb.js`, `nationsDb.js`, **overridy stadionów** (`stadiumsOverrides.js`) | push do gałęzi podpiętej w Coolify | tak |
-| Dane stadionów z Wikidata (`generated/stadiums/`) | `npm run stadiums:deploy` | nie |
+| Dane stadionów z Wikidata (`generated/stadiums/`) | `npm run stadiums:deploy` (pobranie z serwera: `stadiums:pull`) | nie |
 | Koszulki (`kits/`) | `npm run kits:deploy` | nie |
 
 ### Ściągawka poleceń
@@ -210,6 +210,11 @@ npm run fetch:stadiums                              # pełny import (kilka minut
 npm run fetch:stadiums -- --continent africa,asia   # tylko wybrane kontynenty
 npm run stadiums:deploy -- --dry-run                # podgląd wysyłki
 npm run stadiums:deploy                             # wysyłka na serwer
+
+# Stadiony: pobranie z serwera (zamiast importu z Wikidata)
+npm run stadiums:pull -- --dry-run                  # podgląd różnic względem lokalnych danych
+npm run stadiums:pull                               # pobranie, gdy lokalnie nie ma jeszcze danych
+npm run stadiums:pull -- --force                    # zastąpienie istniejących lokalnych danych kopią z serwera
 
 # Koszulki: wysyłka na serwer
 npm run kits:deploy -- --dry-run                    # podgląd: co zostanie wysłane i usunięte
@@ -288,7 +293,23 @@ Po pierwszym wdrożeniu wgraj dane (stadiony i koszulki, opis niżej). Bez nich 
    Skrypt odmówi wysłania pustego albo uszkodzonego indeksu.
    Nginx serwuje te pliki z `Cache-Control: no-cache`, więc nowe dane widać od razu po odświeżeniu strony.
 
-Danych stadionów **nie da się pobrać z serwera** (nie ma `stadiums:pull`). Na nowym komputerze wygeneruj je od nowa przez `npm run fetch:stadiums`.
+### Stadiony: pobranie z serwera
+
+Na nowym komputerze albo żeby pracować na dokładnie tych danych, które są na produkcji,
+nie trzeba importować z Wikidata. Wystarczy pobrać kopię z serwera:
+
+```bash
+npm run stadiums:pull -- --dry-run   # podgląd: co zmieni się lokalnie
+npm run stadiums:pull                # gdy w generated/stadiums/ nie ma jeszcze danych
+npm run stadiums:pull -- --force     # gdy lokalne dane istnieją i chcesz je zastąpić
+```
+
+Indeks i pliki kontynentów tworzą jeden spójny zestaw, więc skrypt (`scripts/pull-stadiums.mjs`) nie łączy ich plik po pliku.
+Pobiera wszystko do katalogu tymczasowego `generated/stadiums.pull/` i sprawdza `index.json` (czy jest poprawny i niepusty).
+Dopiero wtedy podmienia `generated/stadiums/` w całości. Przerwane albo nieudane pobranie zostawia lokalne dane bez zmian.
+
+**Bez `--force` skrypt nie nadpisze istniejących lokalnych danych.** Mogą to być świeżo zaimportowane dane, jeszcze niewysłane na serwer.
+Z `--force` przepadają, a odzyskasz je tylko ponownym `npm run fetch:stadiums`.
 
 ### Overridy stadionów
 
