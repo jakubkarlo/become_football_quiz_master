@@ -84,6 +84,7 @@ function KitScopeForm({ scope, setScope, onStart, onBack }) {
     : competitions.length ? [...new Set(competitions.map(leagueCountryLabel))].join(' · ')
     : 'Wybierz przynajmniej jedną'
   const seasonsSub = !competitions.length ? (isClub ? 'Najpierw wybierz ligę' : 'Najpierw wybierz konfederację')
+    : !seasons.length ? (isClub ? 'Wybrane ligi nie mają wspólnego sezonu' : 'Wybrane konfederacje nie mają wspólnego sezonu')
     : selSeasons.length ? `${selSeasons.length} ${plural(selSeasons.length, 'sezon', 'sezony', 'sezonów')}`
     : 'Wybierz przynajmniej jeden'
 

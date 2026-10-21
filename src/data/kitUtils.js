@@ -78,9 +78,14 @@ export function getLeaguesIn(regions) {
     leagueCountryLabel(a).localeCompare(leagueCountryLabel(b), 'pl') || leagueName(a).localeCompare(leagueName(b), 'pl'))
 }
 
-// Seasons (newest first) in which at least one of the competitions has kits.
+// Seasons (newest first) in which every one of the competitions has kits — the common part,
+// so a chosen season never leaves one of the chosen leagues without kits.
 export function getSeasonsFor(competitions) {
-  return getSeasons().filter(s => (kitsManifest[s] || []).some(l => competitions.includes(l.league)))
+  if (!competitions.length) return []
+  return getSeasons().filter(s => {
+    const leagues = new Set((kitsManifest[s] || []).map(l => l.league))
+    return competitions.every(c => leagues.has(c))
+  })
 }
 
 // Club league keys have the form "<Country> - <League>"; for nations the key is the confederation (see vite.config.js).
