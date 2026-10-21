@@ -100,7 +100,8 @@ export function leagueCountry(league) {
 }
 
 export function leagueCountryLabel(league) {
-  return countryLabel(leagueCountry(league).toLowerCase())
+  // 'South Africa' → 'south_africa', the key format of country.* messages
+  return countryLabel(leagueCountry(league).toLowerCase().replace(/\s+/g, '_'))
 }
 
 // '2025_26' → '25/26' (short) or '2025/2026' (long)

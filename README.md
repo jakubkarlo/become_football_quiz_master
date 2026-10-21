@@ -21,7 +21,9 @@ kits/nations/<Konfederacja>/<Sezon>/<reprezentacja><n>.png np. kits/nations/UEFA
 
 - `<n>` to 1 (domowa), 2 (wyjazdowa) albo 3 (trzecia). Separator `_` przed numerem jest opcjonalny.
 - Koszulki alternatywne leżą w podkatalogu `alt/` (lub `Alt/`) danego sezonu.
-- `<kontynent>` musi mieć polską nazwę w `src/data/geoLabels.js`, a `<Kraj>` (po angielsku) w `COUNTRY_LABELS`.
+- `<kontynent>` musi mieć tłumaczenie `continent.<kontynent>`, a `<Kraj>` (po angielsku) `country.<kraj>`
+  w `src/i18n/pl.js` i `src/i18n/en.js`. Klucz kraju to nazwa katalogu małymi literami ze spacjami zamienionymi na `_`
+  (`South Africa` → `country.south_africa`). Bez tłumaczenia etykieta powstanie z nazwy katalogu („South africa”).
 - Sezon ma format `2025_26`.
 
 **Manifest** generuje `npm run kits:manifest`, który zapisuje `kits/manifest.json` (`scripts/kits-manifest.mjs`).
@@ -99,8 +101,8 @@ const REGIONS = [
   Meksyk i Karaiby zostają w Ameryce Północnej, a Egipt trafia do Afryki.
 - **Państwa leżące częściowo w Europie** (Rosja, Turcja, Kazachstan, Gruzja...) są wykluczone z Azji, bo grają w UEFA.
   Dostaną się do quizu tylko po dopisaniu do `EUROPE`.
-- **`continent` musi mieć polską nazwę** w `src/data/geoLabels.js` (`CONTINENT_LABELS`).
-  Polskie nazwy krajów skrypt pobiera z Wikidata do pola `countryName`.
+- **`continent` musi mieć tłumaczenie** `continent.<kontynent>` w `src/i18n/pl.js` i `src/i18n/en.js`.
+  Polskie nazwy krajów skrypt pobiera z Wikidata do pola `countryName` (w wersji angielskiej też są po polsku).
 
 Ustawienia dla pojedynczych krajów są w `COUNTRY_OPTIONS`. Domyślnie żadne nie są potrzebne:
 
@@ -190,55 +192,163 @@ Nie usuwaj tego linku.
 
 ## Deploy (Coolify)
 
-Aplikacja to statyczny build serwowany przez nginx (`Dockerfile`, `nginx/`). Build trwa krótko, bo nie zawiera danych:
-koszulki i dane stadionów leżą w dwóch katalogach na serwerze, montowanych do kontenera, i wgrywa się je osobno, bez redeployu.
+Aplikacja to statyczny build serwowany przez nginx (`Dockerfile`, `nginx/`). Obraz **nie zawiera danych**:
+koszulki i dane stadionów leżą na serwerze w dwóch katalogach montowanych do kontenera (tylko do odczytu).
+Dlatego są trzy niezależne rodzaje wdrożeń:
 
-1. **Koszulki na serwer** (pierwszy raz i przy każdej zmianie, bez redeployu):
+| Co się zmieniło | Jak wdrożyć | Redeploy aplikacji? |
+|---|---|---|
+| Kod aplikacji, tłumaczenia (`src/i18n/`), `clubsDb.js`, `nationsDb.js`, **overridy stadionów** (`stadiumsOverrides.js`) | push do gałęzi podpiętej w Coolify | tak |
+| Dane stadionów z Wikidata (`generated/stadiums/`) | `npm run stadiums:deploy` | nie |
+| Koszulki (`kits/`) | `npm run kits:deploy` | nie |
 
-   Jednorazowo załóż katalog na serwerze (`sudo mkdir -p /data/football-quiz/kits` i `chown` na użytkownika SSH),
-   a lokalnie skopiuj `.env.example` do `.env` i ustaw `KITS_DEPLOY_TARGET=user@serwer:/data/football-quiz/kits`.
-   Potem:
+### Ściągawka poleceń
+
+```bash
+# Stadiony: import z Wikidata i wysyłka na serwer
+npm run fetch:stadiums                              # pełny import (kilka minut)
+npm run fetch:stadiums -- --continent africa,asia   # tylko wybrane kontynenty
+npm run stadiums:deploy -- --dry-run                # podgląd wysyłki
+npm run stadiums:deploy                             # wysyłka na serwer
+
+# Koszulki: wysyłka na serwer
+npm run kits:deploy -- --dry-run                    # podgląd: co zostanie wysłane i usunięte
+npm run kits:deploy                                 # manifest + zmienione pliki + usunięcie skasowanych lokalnie
+npm run kits:deploy -- --keep                       # bez usuwania czegokolwiek z serwera
+
+# Koszulki: pobranie z serwera
+npm run kits:pull -- --dry-run                      # podgląd
+npm run kits:pull                                   # nowe i zmienione pliki, lokalnych nic nie usuwa
+npm run kits:pull -- --mirror                       # dokładna kopia serwera (USUWA lokalne pliki, których tam nie ma)
+```
+
+Overridy stadionów nie mają osobnego polecenia: to część kodu, wdraża się je commitem (opis niżej).
+
+### Jednorazowa konfiguracja
+
+**Na serwerze** załóż katalogi na dane i nadaj je użytkownikowi, którym logujesz się po SSH:
+
+```bash
+sudo mkdir -p /data/football-quiz/kits /data/football-quiz/stadium-data
+sudo chown -R <użytkownik-ssh>: /data/football-quiz
+```
+
+**Lokalnie** skopiuj `.env.example` do `.env` (plik nie trafia do gita) i ustaw cele wysyłki:
+
+```bash
+KITS_DEPLOY_TARGET=<użytkownik-ssh>@<serwer>:/data/football-quiz/kits
+STADIUMS_DEPLOY_TARGET=<użytkownik-ssh>@<serwer>:/data/football-quiz/stadium-data
+```
+
+Skrypty przyjmują tylko postać `user@host:/ścieżka/absolutna`. Każdą inną wartość odrzucają, więc w zmiennej
+nie da się przemycić opcji rsync ani poleceń powłoki.
+
+**Narzędzia:** skrypty używają `rsync` i `ssh` z logowaniem **po kluczu** (bez hasła).
+W devcontainerze ich nie ma: zainstaluj je (`sudo apt install rsync openssh-client`) albo uruchamiaj skrypty z hosta.
+Sprawdzenie połączenia: `ssh <użytkownik-ssh>@<serwer> ls /data/football-quiz`.
+
+**W Coolify:**
+1. Nowy zasób z repozytorium, Build Pack „Docker Compose”, plik `docker-compose.yml`.
+2. Domena na usłudze `web` (port 80). TLS obsługuje proxy Coolify.
+3. Zmienne `BASIC_AUTH_USER` i `BASIC_AUTH_PASSWORD`, oznaczone jako sekret. Bez nich kontener nie wystartuje,
+   więc strona nigdy nie jest dostępna bez hasła. Przy starcie `nginx/basic-auth.sh` zapisuje z nich plik htpasswd (bcrypt).
+   Zmiana hasła to zmiana zmiennej i restart, bez przebudowy. `/healthz` działa bez hasła (healthcheck).
+4. Opcjonalnie `KITS_HOST_DIR` i `STADIUM_DATA_HOST_DIR`, jeśli katalogi na serwerze są w innym miejscu niż domyślne `/data/football-quiz/...`.
+
+### Wdrożenie aplikacji
+
+Wystarczy push do gałęzi podpiętej w Coolify. Jeśli auto-deploy jest wyłączony, kliknij **Redeploy** w Coolify.
+Build robi tylko `npm ci` i `npm run build`, nie pobiera danych i nie łączy się z Wikidata.
+Lokalnie build sprawdzisz poleceniem `npm run build`.
+
+Po pierwszym wdrożeniu wgraj dane (stadiony i koszulki, opis niżej). Bez nich ekrany zakresu pokażą błąd wczytywania.
+
+### Import stadionów i wysyłka na serwer
+
+1. **Import z Wikidata** do `generated/stadiums/` (szczegóły w sekcji „Pobieranie stadionów”):
 
    ```bash
-   npm run kits:deploy -- --dry-run   # podgląd: co zostanie wysłane, a co usunięte
-   npm run kits:deploy                # manifest + wysyłka tylko zmienionych plików
-   npm run kits:deploy -- --keep      # bez usuwania z serwera plików, których nie ma lokalnie
+   npm run fetch:stadiums
    ```
 
-   Skrypt (`scripts/deploy-kits.mjs`) przebudowuje `kits/manifest.json` i wysyła katalog przez rsync po SSH:
-   najpierw nowe obrazki, potem manifest, na końcu usuwa pliki skasowane lokalnie.
-   Dzięki tej kolejności grający w trakcie wysyłki nigdy nie dostaną manifestu wskazującego brakujący plik.
-   Wymaga `rsync` i `ssh` z dostępem po kluczu (w devcontainerze ich nie ma: `sudo apt install rsync openssh-client` albo uruchom z hosta).
-   Uprawnienia plików są ustawiane tak, żeby nginx w kontenerze mógł je czytać.
-   **Pobranie koszulek z serwera** (np. na nowym komputerze albo żeby sprawdzić, co jest na produkcji):
+   Gdy import przerwie się w połowie, dociągnij brakujące kontynenty: `npm run fetch:stadiums -- --continent asia`.
 
-   ```bash
-   npm run kits:pull -- --dry-run     # podgląd
-   npm run kits:pull                  # pobiera nowe i zmienione pliki, lokalnych nie usuwa
-   npm run kits:pull -- --mirror      # dokładna kopia serwera: usuwa lokalne pliki, których tam nie ma
-   ```
+2. **Sprawdzenie lokalne:** `npm run dev` serwuje `generated/stadiums/` pod `/stadium-data/`.
+   Przejdź kilka rund quizu i zerknij na licznik w ustawieniach. Dane w Wikidata zmieniają się między importami.
 
-   Plik zmieniony po obu stronach nie zostanie nadpisany starszą wersją (wygrywa nowszy).
-
-2. **Dane stadionów na serwer** (po każdym `npm run fetch:stadiums`, bez redeployu):
-
-   Jednorazowo: `sudo mkdir -p /data/football-quiz/stadium-data` (+ `chown`) i `STADIUMS_DEPLOY_TARGET` w `.env`.
+3. **Wysyłka na serwer** (bez redeployu):
 
    ```bash
    npm run stadiums:deploy -- --dry-run
    npm run stadiums:deploy
    ```
 
-   Najpierw idą pliki kontynentów, potem `index.json`, na końcu usuwane są nieaktualne pliki.
-   Skrypt odmówi wysłania pustego indeksu.
+   Kolejność wysyłki: najpierw pliki kontynentów, potem `index.json`, na końcu usuwanie nieaktualnych plików.
+   Dzięki temu nikt w trakcie wysyłki nie dostanie indeksu wskazującego brakujący plik.
+   Skrypt odmówi wysłania pustego albo uszkodzonego indeksu.
+   Nginx serwuje te pliki z `Cache-Control: no-cache`, więc nowe dane widać od razu po odświeżeniu strony.
 
-3. **Coolify:** nowy zasób z repozytorium, Build Pack „Docker Compose”, plik `docker-compose.yml`.
-   Domenę ustaw w Coolify na usłudze `web` (port 80). TLS obsługuje proxy Coolify.
-   Inne ścieżki na serwerze ustawisz zmiennymi `KITS_HOST_DIR` i `STADIUM_DATA_HOST_DIR`.
-   Build robi tylko `npm ci` i `npm run build`, bez pobierania danych.
-   **Basic auth:** cała strona jest chroniona hasłem. W Coolify ustaw zmienne `BASIC_AUTH_USER` i `BASIC_AUTH_PASSWORD`
-   (zaznacz jako sekret). Bez nich kontener nie wystartuje. Przy starcie `nginx/basic-auth.sh` zapisuje z nich plik htpasswd (bcrypt).
-   Zmiana hasła = zmiana zmiennej i restart, bez przebudowy. `/healthz` działa bez hasła (healthcheck).
+Danych stadionów **nie da się pobrać z serwera** (nie ma `stadiums:pull`). Na nowym komputerze wygeneruj je od nowa przez `npm run fetch:stadiums`.
+
+### Overridy stadionów
+
+Poprawki z `src/data/stadiumsOverrides.js` (aliasy, nazwy, zdjęcia, kluby, wykluczenia; opis w sekcji „Ręczne poprawki”)
+są **częścią kodu aplikacji**, a nie danych na serwerze. Aplikacja nakłada je na pobrany JSON w przeglądarce.
+
+1. Zmień `src/data/stadiumsOverrides.js`. Id stadionu (np. `Q188699`) znajdziesz w polu `"id"` w `generated/stadiums/continents/*.json`.
+2. Sprawdź lokalnie w `npm run dev`. Override działa od razu, bez ponownego importu.
+3. Commit i push, a potem wdrożenie aplikacji (patrz wyżej).
+
+`npm run stadiums:deploy` **nie wysyła** overridów, a ponowny import z Wikidata ich nie nadpisuje.
+
+### Koszulki: wysyłka na serwer
+
+Po dodaniu, zmianie albo usunięciu plików w `kits/` (bez redeployu):
+
+```bash
+npm run kits:deploy -- --dry-run   # zawsze najpierw podgląd: sprawdź listę usuwanych plików
+npm run kits:deploy
+```
+
+Skrypt (`scripts/deploy-kits.mjs`):
+1. przebudowuje `kits/manifest.json` (to samo co `npm run kits:manifest`) i odmawia wysyłki pustego manifestu,
+2. wysyła nowe i zmienione obrazki,
+3. wysyła manifest,
+4. usuwa z serwera pliki skasowane lokalnie.
+
+Dzięki tej kolejności grający w trakcie wysyłki nigdy nie dostaną manifestu wskazującego brakujący plik.
+Uprawnienia plików są ustawiane tak, żeby nginx w kontenerze mógł je czytać.
+
+**Uwaga na krok 4:** `kits:deploy` traktuje lokalny katalog `kits/` jako źródło prawdy.
+Jeśli nie masz lokalnie wszystkich koszulek (np. ktoś inny wgrał nowe), najpierw zrób `npm run kits:pull`
+albo wyślij z `--keep`, które nic nie usuwa z serwera.
+
+### Koszulki: pobranie z serwera
+
+Na nowym komputerze, przed własną wysyłką albo żeby sprawdzić, co jest na produkcji:
+
+```bash
+npm run kits:pull -- --dry-run     # podgląd
+npm run kits:pull                  # pobiera nowe i zmienione pliki, lokalnych nie usuwa
+npm run kits:pull -- --mirror      # dokładna kopia serwera: usuwa lokalne pliki, których tam nie ma
+```
+
+Plik zmieniony po obu stronach nie zostanie nadpisany starszą wersją (wygrywa nowszy).
+Przy `--mirror` przepadną lokalne koszulki, których jeszcze nie wysłałeś, więc zawsze zacznij od `--dry-run`.
+
+Typowy cykl pracy z koszulkami:
+
+```bash
+npm run kits:pull                  # dociągnij to, co jest na serwerze
+# ...dodaj pliki w kits/, sprawdź w npm run dev (manifest generuje się na bieżąco)...
+npm run kits:deploy -- --dry-run
+npm run kits:deploy
+```
+
+Jeśli nowe koszulki mają nowe kluby albo reprezentacje, dopisz je do `clubsDb.js` / `nationsDb.js`.
+To zmiana kodu, więc wymaga też wdrożenia aplikacji.
+
+### Przeniesienie koszulek do bucketu (opcjonalnie)
 
 Koszulki można później przenieść do bucketu (S3/R2): wystarczy wgrać tam ten sam katalog z `manifest.json`,
 zbudować z `VITE_KITS_BASE_URL=https://...`, dodać ten host do CSP w `nginx/security-headers.conf` i ustawić CORS bucketu na domenę aplikacji.
