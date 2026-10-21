@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { t, getLocale } from '../i18n/index.js'
 import './ScopeControls.css'
 
 // Building blocks of the "Zakres briefa" screens: summary rows on the screen,
@@ -7,7 +8,7 @@ import './ScopeControls.css'
 export function ScopeHeader({ kicker, title, onBack }) {
   return (
     <div className="scope-head">
-      <button className="back-btn" onClick={onBack} aria-label="Wróć">&#8249;</button>
+      <button className="back-btn" onClick={onBack} aria-label={t('common.back')}>&#8249;</button>
       <div>
         <div className="lbl">{kicker}</div>
         <div className="scope-head-title">{title}</div>
@@ -53,7 +54,7 @@ export function Pick({ value, sub, onClick }) {
         <span className="pick-value">{value}</span>
         {sub && <span className="pick-sub">{sub}</span>}
       </span>
-      <span className="pick-action">Zmień ›</span>
+      <span className="pick-action">{t('common.change')}</span>
     </button>
   )
 }
@@ -62,11 +63,11 @@ export function StartBar({ count, unit, onStart, disabled, busyLabel }) {
   return (
     <div className="start-bar">
       <div className="start-count">
-        <div className={`start-num${count ? '' : ' start-num-empty'}`}>{count.toLocaleString('pl-PL')}</div>
+        <div className={`start-num${count ? '' : ' start-num-empty'}`}>{count.toLocaleString(getLocale())}</div>
         <div className="lbl lbl-sm">{unit}</div>
       </div>
       <button className="btn" onClick={onStart} disabled={disabled || !count}>
-        {busyLabel || 'Start ▸'}
+        {busyLabel || t('common.start')}
       </button>
     </div>
   )
@@ -129,7 +130,7 @@ export function Sheet({ open, title, items, sel, setSel, search, groups, onClose
         <div className="sheet-head">
           <div className="sheet-title">{title}</div>
           <button className="sheet-all lbl lbl-accent" onClick={() => setSel(allSelected ? [] : items.map(i => i.id))}>
-            {allSelected ? 'Odznacz wszystkie' : 'Zaznacz wszystkie'}
+            {t(allSelected ? 'common.deselectAll' : 'common.selectAll')}
           </button>
         </div>
         {search && (
@@ -142,7 +143,7 @@ export function Sheet({ open, title, items, sel, setSel, search, groups, onClose
         )}
         <div className="sheet-list">{body}</div>
         <div className="sheet-foot">
-          <button className="btn btn-block" onClick={onClose}>Gotowe · {sel.length}</button>
+          <button className="btn btn-block" onClick={onClose}>{t('common.done', { count: sel.length })}</button>
         </div>
       </div>
     </div>

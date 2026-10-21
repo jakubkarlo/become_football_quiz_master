@@ -1,57 +1,14 @@
-const CONTINENT_LABELS = {
-  europe: 'Europa',
-  south_america: 'Ameryka Płd.',
-  north_america: 'Ameryka Płn.',
-  central_america: 'Ameryka Śr.',
-  africa: 'Afryka',
-  asia: 'Azja',
-  oceania: 'Oceania',
-}
+import { t, hasMessage } from '../i18n/index.js'
 
-const COUNTRY_LABELS = {
-  poland: 'Polska',
-  england: 'Anglia',
-  united_kingdom: 'Wielka Brytania',
-  spain: 'Hiszpania',
-  germany: 'Niemcy',
-  italy: 'Włochy',
-  france: 'Francja',
-  portugal: 'Portugalia',
-  netherlands: 'Holandia',
-  belgium: 'Belgia',
-  scotland: 'Szkocja',
-  brazil: 'Brazylia',
-  argentina: 'Argentyna',
-  usa: 'USA',
-  mexico: 'Meksyk',
-  russia: 'Rosja',
-  turkey: 'Turcja',
-  greece: 'Grecja',
-  ukraine: 'Ukraina',
-  croatia: 'Chorwacja',
-  serbia: 'Serbia',
-  czech_republic: 'Czechy',
-  hungary: 'Węgry',
-  romania: 'Rumunia',
-  austria: 'Austria',
-  switzerland: 'Szwajcaria',
-  denmark: 'Dania',
-  sweden: 'Szwecja',
-  norway: 'Norwegia',
-  japan: 'Japonia',
-  china: 'Chiny',
-  south_korea: 'Korea Płd.',
-  australia: 'Australia',
-  south_africa: 'RPA',
-  egypt: 'Egipt',
-  morocco: 'Maroko',
-  nigeria: 'Nigeria',
+// Keys without a translation (e.g. a continent or country added to the data later) are shown humanized
+function humanize(key) {
+  return key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ')
 }
 
 export function continentLabel(c) {
-  return CONTINENT_LABELS[c] || c.charAt(0).toUpperCase() + c.slice(1).replace(/_/g, ' ')
+  return hasMessage(`continent.${c}`) ? t(`continent.${c}`) : humanize(c)
 }
 
 export function countryLabel(c) {
-  return COUNTRY_LABELS[c] || c.charAt(0).toUpperCase() + c.slice(1).replace(/_/g, ' ')
+  return hasMessage(`country.${c}`) ? t(`country.${c}`) : humanize(c)
 }

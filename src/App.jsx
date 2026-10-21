@@ -5,9 +5,12 @@ import KitQuiz from './components/KitQuiz'
 import StadiumSettings from './components/StadiumSettings'
 import StadiumQuiz from './components/StadiumQuiz'
 import { buildKitPool } from './data/kitUtils.js'
+import { useLang } from './i18n/index.js'
 import './App.css'
 
 export default function App() {
+  // Re-renders the whole tree on a language change; components read messages through t()
+  useLang()
   const [screen, setScreen] = useState('menu')
   // Brief scopes live here so they survive a round of the quiz
   const [kitScope, setKitScope] = useState(null) // set by KitSettings once the kit manifest is loaded

@@ -3,6 +3,7 @@ import { prepareStadiumDeck, getSuggestions, checkAnswer } from '../data/stadium
 import { countryLabel } from '../data/geoLabels.js'
 import { PitchBoard, QuizHeader, Progress, Hints, Feedback, QuizQuestion, AnswerBar, NextButton, QuizSummary } from './QuizParts.jsx'
 import { useViewportLock } from '../hooks/useViewportLock.js'
+import { t } from '../i18n/index.js'
 import './StadiumQuiz.css'
 
 const ROUND_SIZE = 10
@@ -69,10 +70,10 @@ export default function StadiumQuiz({ stadiums, onBack, onMenu }) {
         <QuizHeader round={0} total={0} onBack={onBack} />
         {!deck && <Progress total={progress.total} filled={progress.loaded} />}
         <div className="quiz-status">
-          {!deck ? `Wczytywanie zdjęć… ${progress.loaded}/${progress.total}` : (
+          {!deck ? t('stadiumQuiz.loading', progress) : (
             <>
-              Nie udało się wczytać zdjęć stadionów. Sprawdź połączenie i spróbuj ponownie.
-              <button className="btn" onClick={handleRestart}>Spróbuj ponownie</button>
+              {t('stadiumQuiz.loadError')}
+              <button className="btn" onClick={handleRestart}>{t('common.retry')}</button>
             </>
           )}
         </div>
@@ -80,13 +81,16 @@ export default function StadiumQuiz({ stadiums, onBack, onMenu }) {
     )
   }
 
-  if (done) return <QuizSummary title="Stadiony" results={results} onAgain={handleRestart} onMenu={onMenu} />
+  if (done) return <QuizSummary title={t('stadiums.kicker')} results={results} onAgain={handleRestart} onMenu={onMenu} />
   if (!question) return null
 
   const hints = [
-    { k: 'Kraj', v: question.countryName || countryLabel(question.country) },
-    question.city && { k: 'Miasto', v: question.city },
-    question.clubs?.length && { k: question.clubs.length > 1 ? 'Kluby' : 'Klub', v: question.clubs.join(' · ') },
+    { k: t('stadiumQuiz.hint.country'), v: question.countryName || countryLabel(question.country) },
+    question.city && { k: t('stadiumQuiz.hint.city'), v: question.city },
+    question.clubs?.length && {
+      k: t(question.clubs.length > 1 ? 'stadiumQuiz.hint.clubs' : 'stadiumQuiz.hint.club'),
+      v: question.clubs.join(' · '),
+    },
   ].filter(Boolean)
 
   return (
@@ -95,7 +99,7 @@ export default function StadiumQuiz({ stadiums, onBack, onMenu }) {
       <Progress total={TOTAL} current={round - 1} results={results} />
 
       <div className="quiz-answer">
-        <QuizQuestion lead="Jaki to" accent="stadion?" />
+        <QuizQuestion lead={t('stadiumQuiz.questionLead')} accent={t('stadiumQuiz.questionAccent')} />
         {result ? (
           <NextButton last={round >= TOTAL} onClick={handleNext} />
         ) : (
@@ -105,7 +109,7 @@ export default function StadiumQuiz({ stadiums, onBack, onMenu }) {
             suggestions={suggestions}
             onPick={s => finish(s.stadium.id === question.id, s.stadium.stadiumName)}
             onSubmit={() => finish(checkAnswer(input, question), input)}
-            placeholder="Nazwa lub miasto…"
+            placeholder={t('stadiumQuiz.placeholder')}
           />
         )}
       </div>
@@ -114,12 +118,12 @@ export default function StadiumQuiz({ stadiums, onBack, onMenu }) {
 
       <div className="quiz-stage">
         <PitchBoard>
-          <img key={question.id} src={question.imageUrl} alt="Stadion" className="stadium-img" />
+          <img key={question.id} src={question.imageUrl} alt={t('stadiumQuiz.imageAlt')} className="stadium-img" />
         </PitchBoard>
         <Feedback result={result}>
           {isSafeUrl(question.imageSource) && (
             <a className="photo-source" href={question.imageSource} target="_blank" rel="noopener noreferrer">
-              Zdjęcie: Wikimedia Commons (autor i licencja)
+              {t('stadiumQuiz.photoSource')}
             </a>
           )}
         </Feedback>

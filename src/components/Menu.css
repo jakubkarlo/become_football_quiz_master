@@ -2,12 +2,19 @@
 .menu-top {
   display: flex;
   justify-content: flex-end;
+  gap: 8px;
   padding: 16px 16px 0;
 }
 
 .theme-toggle { color: var(--muted); }
 
 .theme-toggle:hover { color: var(--accent); }
+
+.lang-toggle {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+}
 
 .menu-title {
   padding: 12px 24px 0;

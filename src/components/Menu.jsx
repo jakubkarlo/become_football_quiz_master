@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { currentTheme, setTheme } from '../theme.js'
 import { randomQuote } from '../data/quotes.js'
+import { t, getLang, setLang } from '../i18n/index.js'
 import './Menu.css'
 
 const IconJersey = () => (
@@ -47,28 +48,43 @@ function ThemeToggle() {
   }
 
   return (
-    <button className="back-btn theme-toggle" onClick={toggle} aria-label={next === 'light' ? 'Włącz jasny motyw' : 'Włącz ciemny motyw'}>
+    <button className="back-btn theme-toggle" onClick={toggle} aria-label={t(next === 'light' ? 'menu.themeLight' : 'menu.themeDark')}>
       {next === 'light' ? <IconSun /> : <IconMoon />}
     </button>
   )
 }
 
+// Shows the language it switches to, like the theme toggle shows the theme it switches to
+function LangToggle() {
+  return (
+    <button
+      className="back-btn theme-toggle lang-toggle"
+      onClick={() => setLang(getLang() === 'pl' ? 'en' : 'pl')}
+      aria-label={t('lang.switchLabel')}
+    >
+      {t('lang.switchTo')}
+    </button>
+  )
+}
+
+// label: i18n key
 const MODES = [
-  { id: 'kit-quiz',     code: '01', label: 'Koszulki', Icon: IconJersey,  active: true },
-  { id: 'stadium-quiz', code: '02', label: 'Stadiony', Icon: IconStadium, active: true },
+  { id: 'kit-quiz',     code: '01', label: 'menu.mode.kits',     Icon: IconJersey,  active: true },
+  { id: 'stadium-quiz', code: '02', label: 'menu.mode.stadiums', Icon: IconStadium, active: true },
   // Hidden until the crest quiz exists
-  { id: 'coming-soon',  code: '03', label: 'Herby',    Icon: IconCrest,   active: false, hidden: true },
+  { id: 'coming-soon',  code: '03', label: 'menu.mode.crests',   Icon: IconCrest,   active: false, hidden: true },
 ]
 
 export default function Menu({ onSelect }) {
   return (
     <div className="screen menu">
       <div className="menu-top">
+        <LangToggle />
         <ThemeToggle />
       </div>
       <h1 className="menu-title">
-        Wizualna odprawa<br />
-        <em>przedmeczowa.</em>
+        {t('menu.titleLead')}<br />
+        <em>{t('menu.titleAccent')}</em>
       </h1>
 
       <div className="menu-modes">
@@ -83,7 +99,7 @@ export default function Menu({ onSelect }) {
               <m.Icon />
             </div>
             <div className="mode-info">
-              <div className="mode-label">{m.label}</div>
+              <div className="mode-label">{t(m.label)}</div>
             </div>
             <div className="mode-arrow">{m.active ? '▸' : '○'}</div>
           </button>

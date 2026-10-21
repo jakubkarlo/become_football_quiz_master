@@ -3,6 +3,7 @@
 // the small index when the settings screen opens, continent files only when a quiz starts.
 import { getOverride } from './stadiumsOverrides.js'
 import { prepareDeck, shuffle } from './deck.js'
+import { getLocale } from '../i18n/index.js'
 
 const DATA_BASE = (import.meta.env.VITE_STADIUM_DATA_URL || '/stadium-data').replace(/\/+$/, '')
 const KEY = /^[a-z_]+$/
@@ -64,7 +65,7 @@ export function getContinents(index) {
 export function getCountries(index, selectedContinents = []) {
   return Object.entries(index.countries)
     .filter(([, c]) => !selectedContinents.length || selectedContinents.includes(c.continent))
-    .sort(([, a], [, b]) => a.name.localeCompare(b.name, 'pl'))
+    .sort(([, a], [, b]) => a.name.localeCompare(b.name, getLocale()))
     .map(([key]) => key)
 }
 

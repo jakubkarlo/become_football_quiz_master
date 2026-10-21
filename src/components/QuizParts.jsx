@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { t } from '../i18n/index.js'
 import './QuizParts.css'
 
 // Shared pieces of the question and summary screens.
@@ -23,7 +24,7 @@ export function PitchBoard({ children }) {
 export function QuizHeader({ round, total, onBack }) {
   return (
     <div className="quiz-head">
-      <button className="back-btn back-btn-sm" onClick={onBack} aria-label="Wróć">&#8249;</button>
+      <button className="back-btn back-btn-sm" onClick={onBack} aria-label={t('common.back')}>&#8249;</button>
       {total > 0 && (
         <div className="quiz-head-round">
           {String(round).padStart(2, '0')}<span>/{total}</span>
@@ -61,7 +62,7 @@ export function Hints({ items, open, revealAll, onOpen }) {
               disabled={shown}
             >
               <span className="hint-k">{h.k}</span>
-              <span className="hint-v">{shown ? h.v : 'Odkryj +'}</span>
+              <span className="hint-v">{shown ? h.v : t('quiz.reveal')}</span>
             </button>
           )
         })}
@@ -80,10 +81,13 @@ export function Feedback({ result, children }) {
       <div className={`fb-card ${cls}`} role="status">
         <div className="fb-icon">{result.ok ? '✓' : '✗'}</div>
         <div className="fb-text">
-          <div className="fb-title">{result.ok ? 'Dobrze!' : result.given ? 'Pudło' : 'Pominięte'}</div>
+          <div className="fb-title">{t(result.ok ? 'quiz.correct' : result.given ? 'quiz.wrong' : 'quiz.skipped')}</div>
           <div className="fb-detail">
             {result.ok ? result.answer : (
-              <>To <b>{result.answer}</b>{result.given && <span className="fb-given"> · Twoja: <s>{result.given}</s></span>}</>
+              <>
+                {t('quiz.answerWas')} <b>{result.answer}</b>
+                {result.given && <span className="fb-given"> · {t('quiz.yourAnswer')} <s>{result.given}</s></span>}
+              </>
             )}
           </div>
           {children}
@@ -143,7 +147,7 @@ export function AnswerBar({ value, onChange, suggestions, onPick, onSubmit, plac
           </ul>
         )}
       </div>
-      <button type="submit" className="btn answer-btn">{value.trim() ? 'OK' : 'Pomiń'}</button>
+      <button type="submit" className="btn answer-btn">{t(value.trim() ? 'quiz.ok' : 'quiz.skip')}</button>
     </form>
   )
 }
@@ -158,17 +162,17 @@ export function NextButton({ last, onClick }) {
 
   return (
     <button className="btn btn-block next-btn" onClick={onClick}>
-      {last ? 'Podsumowanie ▸' : 'Dalej ▸'}
+      {t(last ? 'quiz.toSummary' : 'quiz.next')}
     </button>
   )
 }
 
 function verdict(ok, total) {
   const ratio = total ? ok / total : 0
-  if (ratio >= 0.9) return 'Gotowy na mecz.'
-  if (ratio >= 0.7) return 'Solidna odprawa.'
-  if (ratio >= 0.4) return 'Jeszcze trening.'
-  return 'Wracamy do taktyki.'
+  if (ratio >= 0.9) return t('quiz.verdict.great')
+  if (ratio >= 0.7) return t('quiz.verdict.good')
+  if (ratio >= 0.4) return t('quiz.verdict.fair')
+  return t('quiz.verdict.poor')
 }
 
 export function QuizSummary({ title, results, onAgain, onMenu }) {
@@ -177,7 +181,7 @@ export function QuizSummary({ title, results, onAgain, onMenu }) {
   return (
     <div className="screen">
       <div className="summary-top">
-        <div className="lbl">{title} · Wynik</div>
+        <div className="lbl">{t('quiz.score', { title })}</div>
         <div className="summary-score">
           <span className="summary-ok">{ok}</span>
           <span className="summary-of">/{results.length}</span>
@@ -186,8 +190,8 @@ export function QuizSummary({ title, results, onAgain, onMenu }) {
       </div>
 
       <div className="summary-actions">
-        <button className="btn btn-ghost" onClick={onMenu}>Menu</button>
-        <button className="btn summary-again" onClick={onAgain}>Jeszcze raz ▸</button>
+        <button className="btn btn-ghost" onClick={onMenu}>{t('common.menu')}</button>
+        <button className="btn summary-again" onClick={onAgain}>{t('quiz.again')}</button>
       </div>
     </div>
   )

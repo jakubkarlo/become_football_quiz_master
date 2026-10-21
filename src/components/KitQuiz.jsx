@@ -2,17 +2,20 @@ import { useState, useCallback, useEffect } from 'react'
 import { prepareKitDeck, getSuggestions, checkAnswer, leagueName } from '../data/kitUtils.js'
 import { PitchBoard, QuizHeader, Progress, Hints, Feedback, QuizQuestion, AnswerBar, NextButton, QuizSummary } from './QuizParts.jsx'
 import { useViewportLock } from '../hooks/useViewportLock.js'
+import { t } from '../i18n/index.js'
 import './KitQuiz.css'
 
 const ROUND_SIZE = 10
 
 function hintsFor(question) {
-  const { club, kitLabel } = question
+  const { club, kitType } = question
   const [from, to] = club.season.split('_')
   return [
-    { k: 'Sezon', v: `${from}/${to}` },
-    club.kind === 'nation' ? { k: 'Konfederacja', v: club.league } : { k: 'Liga', v: leagueName(club.league) },
-    { k: 'Rodzaj', v: kitLabel.charAt(0).toUpperCase() + kitLabel.slice(1) },
+    { k: t('kitQuiz.hint.season'), v: `${from}/${to}` },
+    club.kind === 'nation'
+      ? { k: t('kitQuiz.hint.confederation'), v: club.league }
+      : { k: t('kitQuiz.hint.league'), v: leagueName(club.league) },
+    { k: t('kitQuiz.hint.type'), v: t(`kitQuiz.kit.${kitType}`) },
   ]
 }
 
@@ -75,10 +78,10 @@ export default function KitQuiz({ clubs, kind = 'club', kitTypes = [1, 2, 3], on
         <QuizHeader round={0} total={0} onBack={onBack} />
         {!deck && <Progress total={progress.total} filled={progress.loaded} />}
         <div className="quiz-status">
-          {!deck ? `Wczytywanie koszulek… ${progress.loaded}/${progress.total}` : (
+          {!deck ? t('kitQuiz.loading', progress) : (
             <>
-              Nie udało się wczytać koszulek. Sprawdź połączenie i spróbuj ponownie.
-              <button className="btn" onClick={handleRestart}>Spróbuj ponownie</button>
+              {t('kitQuiz.loadError')}
+              <button className="btn" onClick={handleRestart}>{t('common.retry')}</button>
             </>
           )}
         </div>
@@ -86,7 +89,7 @@ export default function KitQuiz({ clubs, kind = 'club', kitTypes = [1, 2, 3], on
     )
   }
 
-  if (done) return <QuizSummary title="Koszulki" results={results} onAgain={handleRestart} onMenu={onMenu} />
+  if (done) return <QuizSummary title={t('kits.kicker')} results={results} onAgain={handleRestart} onMenu={onMenu} />
   if (!question) return null
 
   return (
@@ -95,7 +98,7 @@ export default function KitQuiz({ clubs, kind = 'club', kitTypes = [1, 2, 3], on
       <Progress total={TOTAL} current={round - 1} results={results} />
 
       <div className="quiz-answer">
-        <QuizQuestion lead={isNation ? 'Jakiej reprezentacji' : 'Jakiego klubu'} accent="to koszulka?" />
+        <QuizQuestion lead={t(isNation ? 'kitQuiz.questionNation' : 'kitQuiz.questionClub')} accent={t('kitQuiz.questionAccent')} />
         {result ? (
           <NextButton last={round >= TOTAL} onClick={handleNext} />
         ) : (
@@ -105,7 +108,7 @@ export default function KitQuiz({ clubs, kind = 'club', kitTypes = [1, 2, 3], on
             suggestions={suggestions}
             onPick={s => finish(s.club.id === question.club.id, s.label)}
             onSubmit={() => finish(checkAnswer(input, question.club), input)}
-            placeholder={isNation ? 'Wpisz reprezentację…' : 'Wpisz klub…'}
+            placeholder={t(isNation ? 'kitQuiz.placeholderNation' : 'kitQuiz.placeholderClub')}
           />
         )}
       </div>
@@ -115,7 +118,7 @@ export default function KitQuiz({ clubs, kind = 'club', kitTypes = [1, 2, 3], on
       <div className="quiz-stage">
         <PitchBoard>
           <div className="jersey-frame">
-            <img key={question.key} src={question.imageUrl} alt="Koszulka" className="jersey-img" />
+            <img key={question.key} src={question.imageUrl} alt={t('kitQuiz.imageAlt')} className="jersey-img" />
             {!result && <div className="logo-mask">?</div>}
           </div>
         </PitchBoard>
